@@ -1,42 +1,120 @@
 import { useNavigate } from "react-router";
+import React, { useState, useEffect } from "react";
 import {
   Rss,
   FileText,
   CheckCircle,
-  Radio,
   TrendingUp,
   AlertCircle,
   Clock,
   Plus,
   List,
   Edit3,
-  Archive,
+  Activity,
 } from "lucide-react";
-
-const stats = [
-  { label: "Total RSS Feeds", value: "24", icon: <Rss size={20} />, color: "bg-blue-500", change: "+2 this week" },
-  { label: "Articles Today", value: "138", icon: <FileText size={20} />, color: "bg-indigo-500", change: "+14% vs yesterday" },
-  { label: "Pending Reviews", value: "47", icon: <Clock size={20} />, color: "bg-amber-500", change: "12 urgent" },
-  { label: "Published Today", value: "93", icon: <Radio size={20} />, color: "bg-emerald-500", change: "+8% vs yesterday" },
-];
-
-const recentActivity = [
-  { type: "published", text: "New Visa rules released today", source: "Khaleej Times", time: "2 min ago", reviewer: "Sanjay" },
-  { type: "archived", text: "Old market report Q3", source: "Gulf News", time: "15 min ago", reviewer: "Ahmed" },
-  { type: "edited", text: "New mall opening ceremony coverage", source: "Arabia Times", time: "32 min ago", reviewer: "Sanjay" },
-  { type: "queued", text: "Tech summit highlights 2026", source: "TechCrunch", time: "1h ago", reviewer: null },
-  { type: "published", text: "Central Bank announces rate cut", source: "Reuters", time: "2h ago", reviewer: "Ahmed" },
-];
+import { apiClient } from "../services/api";
+import type { DashboardSummary, TopFeed } from "../types/api";
+import { ArticlePreviewModal } from "../components/ArticlePreviewModal";
 
 const activityIcon: Record<string, React.ReactNode> = {
-  published: <CheckCircle size={14} className="text-emerald-500" />,
-  archived: <Archive size={14} className="text-gray-400" />,
-  edited: <Edit3 size={14} className="text-indigo-500" />,
-  queued: <Clock size={14} className="text-amber-500" />,
+  COMPLETED: <CheckCircle size={14} className="text-emerald-500" />,
+  PROCESSING: <Clock size={14} className="text-amber-500" />,
+  FAILED: <AlertCircle size={14} className="text-red-500" />,
+  PREVIEW: <Edit3 size={14} className="text-indigo-500" />,
 };
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [analytics, setAnalytics] = useState<DashboardSummary | null>(null);
+  const [topFeeds, setTopFeeds] = useState<TopFeed[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [previewFeedId, setPreviewFeedId] = useState<string | null>(null);
+  const [previewFeed, setPreviewFeed] = useState<any>(null);
+
+  useEffect(() => {
+    loadAnalytics();
+    loadTopFeeds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.getDashboardSummary();
+      setAnalytics(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load analytics");
+      console.error("Failed to load dashboard analytics:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTopFeeds = async () => {
+    try {
+      const feeds = await apiClient.getTopFeeds({ limit: 5 });
+      setTopFeeds(feeds);
+    } catch (err) {
+      console.error("Failed to load top feeds:", err);
+    }
+  };
+
+  const handleFeedClick = async (feedId: string) => {
+    try {
+      const feed = await apiClient.getFeedById(feedId);
+      setPreviewFeed(feed);
+      setPreviewFeedId(feedId);
+    } catch (err: any) {
+      alert(err.message || "Failed to load feed preview");
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  };
+
+  const stats = analytics
+    ? [
+        {
+          label: "Total RSS Sources",
+          value: analytics.total_rss_sources.toString(),
+          icon: <Rss size={20} />,
+          color: "bg-blue-500",
+          change: `${analytics.active_rss_sources} active`,
+        },
+        {
+          label: "Total Feeds Fetched",
+          value: analytics.total_feeds.toLocaleString(),
+          icon: <FileText size={20} />,
+          color: "bg-indigo-500",
+          change: "All time",
+        },
+        {
+          label: "Cron Runs (24h)",
+          value: analytics.recent_cron_runs_24h.toString(),
+          icon: <Activity size={20} />,
+          color: "bg-amber-500",
+          change: "Last 24 hours",
+        },
+        {
+          label: "Avg Engagement",
+          value: Number.parseFloat(analytics.avg_engagement_score).toFixed(2),
+          icon: <TrendingUp size={20} />,
+          color: "bg-emerald-500",
+          change: "Score",
+        },
+      ]
+    : [];
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Page header */}
@@ -47,60 +125,117 @@ export function Dashboard() {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => navigate("/rss/list")}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <List size={16} />
+            Manage Feeds
+          </button>
+          <button
             onClick={() => navigate("/rss/setup")}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <Plus size={16} />
-            New RSS Feed
+            New RSS Source
           </button>
         </div>
       </div>
 
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-red-800 font-medium">Failed to load analytics</p>
+            <p className="text-xs text-red-600 mt-1">{error}</p>
+          </div>
+          <button
+            onClick={loadAnalytics}
+            className="text-sm text-red-700 hover:text-red-900 font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <span className={`${s.color} w-10 h-10 rounded-lg flex items-center justify-center text-white`}>
-                {s.icon}
-              </span>
-              <TrendingUp size={16} className="text-gray-300" />
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm animate-pulse">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                <div className="w-4 h-4 bg-gray-200 rounded"></div>
+              </div>
+              <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-20"></div>
             </div>
-            <p className="text-2xl text-gray-900 font-semibold">{s.value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-            <p className="text-xs text-emerald-600 mt-1">{s.change}</p>
-          </div>
-        ))}
+          ))
+        ) : (
+          stats.map((s) => (
+            <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className={`${s.color} w-10 h-10 rounded-lg flex items-center justify-center text-white`}>
+                  {s.icon}
+                </span>
+                <TrendingUp size={16} className="text-gray-300" />
+              </div>
+              <p className="text-2xl text-gray-900 font-semibold">{s.value}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+              <p className="text-xs text-indigo-600 mt-1">{s.change}</p>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
-        {/* Recent Activity */}
+        {/* Recent Activity - Top 5 Feeds */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-800">Recent Activity</h2>
-            <button className="text-xs text-indigo-600 hover:underline">View all</button>
+            <h2 className="text-sm font-semibold text-gray-800">Top 5 Recent Feeds</h2>
+            <button
+              onClick={() => navigate("/articles/queue")}
+              className="text-xs text-indigo-600 hover:underline"
+            >
+              View all
+            </button>
           </div>
           <div className="divide-y divide-gray-50">
-            {recentActivity.map((item, i) => (
-              <div key={i} className="px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50 transition-colors">
-                <div className="mt-0.5 flex-shrink-0">{activityIcon[item.type]}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-800 truncate">{item.text}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {item.source} · {item.time}
-                    {item.reviewer && ` · by ${item.reviewer}`}
-                  </p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] capitalize flex-shrink-0 ${
-                  item.type === "published" ? "bg-emerald-100 text-emerald-700" :
-                  item.type === "archived" ? "bg-gray-100 text-gray-600" :
-                  item.type === "edited" ? "bg-indigo-100 text-indigo-700" :
-                  "bg-amber-100 text-amber-700"
-                }`}>
-                  {item.type}
-                </span>
+            {topFeeds.length === 0 ? (
+              <div className="px-5 py-8 text-center text-gray-400 text-sm">
+                No recent feeds available
               </div>
-            ))}
+            ) : (
+              topFeeds.map((feed) => (
+                <div
+                  key={feed.id}
+                  className="px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => handleFeedClick(feed.id)}
+                >
+                  <div className="mt-0.5 flex-shrink-0">{activityIcon[feed.status]}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 truncate">{feed.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {feed.provider} · {formatTimeAgo(feed.published_at)}
+                    </p>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[11px] capitalize flex-shrink-0 ${
+                      feed.status === "COMPLETED"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : feed.status === "PROCESSING"
+                        ? "bg-amber-100 text-amber-700"
+                        : feed.status === "FAILED"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-indigo-100 text-indigo-700"
+                    }`}
+                  >
+                    {feed.status}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -153,6 +288,21 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <ArticlePreviewModal
+        feed={previewFeed}
+        isOpen={!!previewFeedId}
+        onClose={() => {
+          setPreviewFeedId(null);
+          setPreviewFeed(null);
+        }}
+        onEdit={(id) => {
+          setPreviewFeedId(null);
+          setPreviewFeed(null);
+          navigate(`/feeds/edit/${id}`);
+        }}
+      />
     </div>
   );
 }

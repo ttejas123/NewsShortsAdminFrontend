@@ -2,73 +2,59 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Edit3,
-  Plus,
   Search,
   RefreshCw,
-  Archive,
   Loader2,
   AlertCircle,
   FileText,
-  Activity,
+  Trash2,
+  Filter,
 } from "lucide-react";
 import { apiClient } from "../services/api";
-import type { Feed, ProcessingStats, TodayStats } from "../types/api";
+import type { Feed } from "../types/api";
 import { ArticlePreviewModal } from "../components/ArticlePreviewModal";
 
-export function NewArticleQueue() {
+export function PublishedFeeds() {
   const navigate = useNavigate();
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [todayStats, setTodayStats] = useState<TodayStats | null>(null);
-  const [processingStats, setProcessingStats] = useState<ProcessingStats[]>([]);
   
   const [filters, setFilters] = useState({
     lang: "",
-    status: "",
+    source: "", // rss-generated or admin-generated
     search: "",
   });
   
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [previewFeed, setPreviewFeed] = useState<Feed | null>(null);
-  const [cursor, setCursor] = useState<number>(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const limit = 20;
 
   useEffect(() => {
     loadFeeds();
-    loadAnalytics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
-
-  const loadAnalytics = async () => {
-    try {
-      const [today, stats] = await Promise.all([
-        apiClient.getTodayStats(),
-        apiClient.getProcessingStats(),
-      ]);
-      setTodayStats(today);
-      setProcessingStats(stats);
-    } catch (err) {
-      console.error("Failed to load analytics:", err);
-    }
-  };
+  }, [filters, page]);
 
   const loadFeeds = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Calculate cursor from page (offset-based)
+      const cursor = (page - 1) * limit;
+      
       const response = await apiClient.getFeeds({
         limit,
         cursor,
         lang: filters.lang || undefined,
       });
       
-      // Client-side filter by status and search
+      // Client-side filter by search and source
       let filtered = response.items;
-      if (filters.status) {
-        filtered = filtered.filter((f) => f.status.name === filters.status);
-      }
+      
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         filtered = filtered.filter(
@@ -78,13 +64,19 @@ export function NewArticleQueue() {
         );
       }
       
-      setFeeds(filtered);
-      setHasMore(response.has_more);
-      if (response.cursor) {
-        setCursor(response.cursor);
+      if (filters.source) {
+        if (filters.source === "rss") {
+          filtered = filtered.filter((f) => !f.admin_feed_id);
+        } else if (filters.source === "admin") {
+          filtered = filtered.filter((f) => f.admin_feed_id);
+        }
       }
+      
+      setFeeds(filtered);
+      setTotalCount(response.count);
+      setTotalPages(Math.ceil(response.count / limit));
     } catch (err: any) {
-      setError(err.error || "Failed to load feeds");
+      setError(err.message || "Failed to load feeds");
       console.error("Failed to load feeds:", err);
     } finally {
       setLoading(false);
@@ -107,35 +99,47 @@ export function NewArticleQueue() {
     }
   };
 
-  const handleBulkArchive = async () => {
+  const handleBulkTakeDown = async () => {
     if (selected.size === 0) return;
-    if (!confirm(`Archive ${selected.size} article(s)?`)) return;
+    if (!confirm(`Take down ${selected.size} feed(s)? They will be removed from live.`)) return;
 
     try {
       await Promise.all(
-        Array.from(selected).map((id) => apiClient.softDeleteFeed(id))
+        Array.from(selected).map((id) => apiClient.takeDownFeed(id))
       );
       setSelected(new Set());
       await loadFeeds();
-      alert("Articles archived successfully!");
+      alert("Feeds taken down successfully!");
     } catch (err: any) {
-      alert(err.error || "Failed to archive articles");
+      alert(err.message || "Failed to take down feeds");
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "bg-emerald-100 text-emerald-700";
-      case "PROCESSING":
-        return "bg-amber-100 text-amber-700";
-      case "FAILED":
-        return "bg-red-100 text-red-700";
-      case "PREVIEW":
-        return "bg-blue-100 text-blue-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+  const handleTakeDown = async (id: string) => {
+    if (!confirm("Take down this feed? It will be removed from live.")) return;
+
+    try {
+      await apiClient.takeDownFeed(id);
+      await loadFeeds();
+      alert("Feed taken down successfully!");
+    } catch (err: any) {
+      alert(err.message || "Failed to take down feed");
     }
+  };
+
+  const getSourceBadge = (feed: Feed) => {
+    if (feed.admin_feed_id) {
+      return (
+        <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-md font-medium">
+          Admin Generated
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md font-medium">
+        RSS Generated
+      </span>
+    );
   };
 
   const formatDate = (dateString?: string) => {
@@ -155,57 +159,22 @@ export function NewArticleQueue() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="text-xs text-gray-400 mb-1">Admin → Articles → New Article Queue</div>
+      <div className="text-xs text-gray-400 mb-1">Admin → Published Feeds (Client-Side)</div>
 
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-gray-900">Article Queue</h1>
+          <h1 className="text-gray-900">Published Feeds</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Manage and review articles from RSS feeds
+            Manage all published feeds visible to users (RSS + Admin created)
           </p>
         </div>
-        <button
-          onClick={() => navigate("/articles/edit")}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus size={16} />
-          New Article
-        </button>
       </div>
 
-      {/* Analytics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {todayStats && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <FileText size={16} className="text-indigo-500" />
-              <p className="text-xs text-gray-500 font-medium">Today's Articles</p>
-            </div>
-            <p className="text-2xl text-gray-900 font-semibold">{todayStats.today}</p>
-            <p className={`text-xs mt-1 ${todayStats.trend === "up" ? "text-emerald-600" : "text-red-600"}`}>
-              {todayStats.percentageChange} vs yesterday
-            </p>
-          </div>
-        )}
-
-        {processingStats.map((stat, idx) => (
-          <div key={stat.status} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <Activity size={16} className="text-amber-500" />
-              <p className="text-xs text-gray-500 font-medium">{stat.status}</p>
-            </div>
-            <p className="text-2xl text-gray-900 font-semibold">{stat.count}</p>
-            <p className="text-xs text-gray-400 mt-1">{stat.last_24h} in last 24h</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Error Alert */}
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-red-800 font-medium">Error loading articles</p>
+            <p className="text-sm text-red-800 font-medium">Error loading feeds</p>
             <p className="text-xs text-red-600 mt-1">{error}</p>
           </div>
           <button
@@ -225,13 +194,16 @@ export function NewArticleQueue() {
             <div className="w-3 h-3 rounded-full bg-amber-400"></div>
             <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
           </div>
-          <span className="text-xs text-gray-500 ml-2">Article Queue</span>
+          <span className="text-xs text-gray-500 ml-2">Published Feeds</span>
         </div>
 
         <div className="p-6">
           {/* Filters */}
           <div className="mb-5">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Filters</p>
+            <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Filter size={16} />
+              Filters
+            </p>
             <div className="flex flex-wrap gap-2 items-center">
               <div className="relative flex-1 min-w-64">
                 <Search
@@ -240,7 +212,7 @@ export function NewArticleQueue() {
                 />
                 <input
                   type="text"
-                  placeholder="Search articles..."
+                  placeholder="Search feeds..."
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
@@ -260,15 +232,13 @@ export function NewArticleQueue() {
               </select>
 
               <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                value={filters.source}
+                onChange={(e) => setFilters({ ...filters, source: e.target.value })}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
               >
-                <option value="">All Status</option>
-                <option value="PREVIEW">PREVIEW</option>
-                <option value="PROCESSING">PROCESSING</option>
-                <option value="COMPLETED">COMPLETED</option>
-                <option value="FAILED">FAILED</option>
+                <option value="">All Sources</option>
+                <option value="rss">RSS Generated</option>
+                <option value="admin">Admin Generated</option>
               </select>
 
               <button
@@ -283,15 +253,15 @@ export function NewArticleQueue() {
 
           <hr className="border-gray-200 mb-4" />
 
-          {/* Archive button */}
+          {/* Bulk Take Down button */}
           {anyChecked && (
             <div className="mb-3 flex gap-2">
               <button
-                onClick={handleBulkArchive}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={handleBulkTakeDown}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
-                <Archive size={14} />
-                Archive ({selected.size})
+                <Trash2 size={14} />
+                Take Down ({selected.size})
               </button>
             </div>
           )}
@@ -313,19 +283,19 @@ export function NewArticleQueue() {
                     Image
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Article Title
+                    Feed Title
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-40">
                     Provider
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-32">
-                    Status
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-40">
+                    Source Type
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-32">
                     Published
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-20">
-                    Edit
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-32">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -334,13 +304,13 @@ export function NewArticleQueue() {
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center">
                       <Loader2 size={24} className="animate-spin text-indigo-600 mx-auto" />
-                      <p className="text-sm text-gray-500 mt-2">Loading articles...</p>
+                      <p className="text-sm text-gray-500 mt-2">Loading feeds...</p>
                     </td>
                   </tr>
                 ) : feeds.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      No articles found
+                      No published feeds found
                     </td>
                   </tr>
                 ) : (
@@ -384,30 +354,34 @@ export function NewArticleQueue() {
                         <td className="px-4 py-3 text-gray-700">
                           <div className="font-medium line-clamp-2">{feed.title}</div>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{feed.Provider?.name || "N/A"}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                              feed.status.name
-                            )}`}
-                          >
-                            {feed.status.name}
-                          </span>
-                        </td>
+                        <td className="px-4 py-3 text-gray-600">{feed.provider.name}</td>
+                        <td className="px-4 py-3">{getSourceBadge(feed)}</td>
                         <td className="px-4 py-3 text-gray-500">
                           {formatDate(feed.published_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/articles/edit/${feed.id}`);
-                            }}
-                            className="text-blue-500 hover:text-blue-700 transition-colors"
-                            title="Edit article"
-                          >
-                            <Edit3 size={18} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/feeds/edit/${feed.id}`);
+                              }}
+                              className="text-blue-500 hover:text-blue-700 transition-colors"
+                              title="Edit feed"
+                            >
+                              <Edit3 size={18} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTakeDown(feed.id);
+                              }}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              title="Take down feed"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -417,15 +391,34 @@ export function NewArticleQueue() {
             </table>
           </div>
 
-          {/* Load More */}
-          {hasMore && !loading && feeds.length > 0 && (
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-gray-500">
+                Page {page} of {totalPages} ({totalCount} total feeds)
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!loading && feeds.length > 0 && totalPages === 1 && (
             <div className="flex justify-center mt-4">
-              <button
-                onClick={loadFeeds}
-                className="px-4 py-2 text-sm text-indigo-600 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition-colors"
-              >
-                Load More
-              </button>
+              <p className="text-sm text-gray-500">{totalCount} total feeds</p>
             </div>
           )}
         </div>
@@ -438,7 +431,7 @@ export function NewArticleQueue() {
         onClose={() => setPreviewFeed(null)}
         onEdit={(id) => {
           setPreviewFeed(null);
-          navigate(`/articles/edit/${id}`);
+          navigate(`/feeds/edit/${id}`);
         }}
       />
     </div>

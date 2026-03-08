@@ -1,3 +1,4 @@
+import React from "react";
 import { useNavigate } from "react-router";
 
 interface FlowNode {
@@ -38,10 +39,10 @@ const nodes: FlowNode[] = [
   },
   {
     id: "article-edit",
-    label: "Article Edit",
+    label: "Article Create",
     sublabel: "(Articles are summarized using the python script)",
     bold: true,
-    path: "/articles/edit",
+    path: "/articles/create",
     col: 1,
     row: 3,
   },

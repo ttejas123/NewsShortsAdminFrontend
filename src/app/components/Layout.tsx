@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import {
   LayoutDashboard,
@@ -50,10 +50,17 @@ const navItems: NavItem[] = [
     label: "Articles",
     icon: <FileText size={18} />,
     children: [
-      { label: "New Queue", path: "/articles/queue", icon: <FileText size={16} /> },
-      { label: "Article Edit", path: "/articles/edit", icon: <FileText size={16} /> },
-      { label: "Reviewed Queue", path: "/articles/reviewed", icon: <CheckSquare size={16} /> },
-      { label: "Archive", path: "/articles/archive", icon: <Archive size={16} /> },
+      { label: "Article Queue", path: "/articles/queue", icon: <FileText size={16} /> },
+      { label: "New Article", path: "/articles/new", icon: <Plus size={16} /> },
+      { label: "Published (Admin)", path: "/articles/published", icon: <CheckSquare size={16} /> },
+    ],
+  },
+  {
+    label: "Published Articles",
+    icon: <FileText size={18} />,
+    children: [
+      { label: "Live Feeds", path: "/feeds/published", icon: <FileText size={16} /> },
+      { label: "Taken Down", path: "/feeds/taken-down", icon: <Archive size={16} /> },
     ],
   },
 ];

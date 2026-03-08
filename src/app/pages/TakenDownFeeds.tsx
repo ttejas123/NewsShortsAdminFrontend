@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import {
   RotateCcw,
   Search,
@@ -12,39 +11,40 @@ import {
 import { apiClient } from "../services/api";
 import type { Feed } from "../types/api";
 
-export function ArticleArchive() {
-  const [deletedFeeds, setDeletedFeeds] = useState<Feed[]>([]);
+export function TakenDownFeeds() {
+  const [feeds, setFeeds] = useState<Feed[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 20;
 
   useEffect(() => {
-    loadDeletedFeeds();
-  }, []);
+    loadFeeds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchQuery]);
 
-  const loadDeletedFeeds = async () => {
+  const loadFeeds = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.getDeletedFeeds({ limit: 100 });
-      setDeletedFeeds(response.items);
+      const response = await apiClient.getTakenDownFeeds({
+        page,
+        limit,
+        search: searchQuery || undefined,
+      });
+      
+      setFeeds(response.items);
+      setTotalPages(response.pagination.totalPages);
     } catch (err: any) {
-      setError(err.error || "Failed to load archived articles");
-      console.error("Failed to load archived articles:", err);
+      setError(err.message || "Failed to load feeds");
+      console.error("Failed to load feeds:", err);
     } finally {
       setLoading(false);
     }
   };
-
-  const filteredFeeds = deletedFeeds.filter((feed) => {
-    if (!searchQuery) return true;
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      feed.title.toLowerCase().includes(searchLower) ||
-      feed.description.toLowerCase().includes(searchLower)
-    );
-  });
 
   const toggleCheck = (id: string) => {
     setSelected((prev) => {
@@ -55,38 +55,38 @@ export function ArticleArchive() {
   };
 
   const toggleAll = () => {
-    if (selected.size === filteredFeeds.length) {
+    if (selected.size === feeds.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(filteredFeeds.map((f) => f.id)));
+      setSelected(new Set(feeds.map((f) => f.id)));
     }
   };
 
   const handleBulkRestore = async () => {
     if (selected.size === 0) return;
-    if (!confirm(`Restore ${selected.size} article(s)?`)) return;
+    if (!confirm(`Restore ${selected.size} feed(s)? They will be visible to users again.`)) return;
 
     try {
       await Promise.all(
-        Array.from(selected).map((id) => apiClient.restoreFeed(id))
+        Array.from(selected).map((id) => apiClient.restoreClientFeed(id))
       );
       setSelected(new Set());
-      await loadDeletedFeeds();
-      alert("Articles restored successfully!");
+      await loadFeeds();
+      alert("Feeds restored successfully!");
     } catch (err: any) {
-      alert(err.error || "Failed to restore articles");
+      alert(err.message || "Failed to restore feeds");
     }
   };
 
   const handleRestore = async (id: string) => {
-    if (!confirm("Restore this article?")) return;
+    if (!confirm("Restore this feed? It will be visible to users again.")) return;
 
     try {
-      await apiClient.restoreFeed(id);
-      alert("Article restored successfully!");
-      await loadDeletedFeeds();
+      await apiClient.restoreClientFeed(id);
+      alert("Feed restored successfully!");
+      await loadFeeds();
     } catch (err: any) {
-      alert(err.error || "Failed to restore article");
+      alert(err.message || "Failed to restore feed");
     }
   };
 
@@ -97,21 +97,34 @@ export function ArticleArchive() {
       month: "short",
       day: "numeric",
       year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
+  };
+
+  const getSourceBadge = (feed: Feed) => {
+    if (feed.admin_feed_id) {
+      return (
+        <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-md font-medium">
+          Admin
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md font-medium">
+        RSS
+      </span>
+    );
   };
 
   const anyChecked = selected.size > 0;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="text-xs text-gray-400 mb-1">Admin → Articles → Archive</div>
+      <div className="text-xs text-gray-400 mb-1">Admin → Published Articles → Taken Down</div>
 
       <div className="mb-5">
-        <h1 className="text-gray-900">Archived Articles</h1>
+        <h1 className="text-gray-900">Taken Down Feeds</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          View and restore deleted articles
+          Feeds removed from client view (can be restored)
         </p>
       </div>
 
@@ -119,11 +132,11 @@ export function ArticleArchive() {
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-red-800 font-medium">Error loading archive</p>
+            <p className="text-sm text-red-800 font-medium">Error loading feeds</p>
             <p className="text-xs text-red-600 mt-1">{error}</p>
           </div>
           <button
-            onClick={loadDeletedFeeds}
+            onClick={loadFeeds}
             className="text-sm text-red-700 hover:text-red-900 font-medium"
           >
             Retry
@@ -139,11 +152,11 @@ export function ArticleArchive() {
             <div className="w-3 h-3 rounded-full bg-amber-400"></div>
             <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
           </div>
-          <span className="text-xs text-gray-500 ml-2">Archived Articles</span>
+          <span className="text-xs text-gray-500 ml-2">Taken Down Feeds</span>
         </div>
 
         <div className="p-6">
-          {/* Search & Actions */}
+          {/* Search */}
           <div className="mb-5 flex items-center gap-3">
             <div className="relative flex-1">
               <Search
@@ -152,14 +165,14 @@ export function ArticleArchive() {
               />
               <input
                 type="text"
-                placeholder="Search archived articles..."
+                placeholder="Search feeds..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
               />
             </div>
             <button
-              onClick={loadDeletedFeeds}
+              onClick={loadFeeds}
               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               title="Refresh"
             >
@@ -190,9 +203,7 @@ export function ArticleArchive() {
                   <th className="px-4 py-3 text-left w-12">
                     <input
                       type="checkbox"
-                      checked={
-                        selected.size === filteredFeeds.length && filteredFeeds.length > 0
-                      }
+                      checked={selected.size === feeds.length && feeds.length > 0}
                       onChange={toggleAll}
                       className="accent-indigo-600 w-4 h-4"
                     />
@@ -201,13 +212,13 @@ export function ArticleArchive() {
                     Image
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Article Title
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-40">
-                    Provider
+                    Title
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-32">
-                    Archived At
+                    Source
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-32">
+                    Taken Down
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-24">
                     Action
@@ -219,22 +230,20 @@ export function ArticleArchive() {
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center">
                       <Loader2 size={24} className="animate-spin text-indigo-600 mx-auto" />
-                      <p className="text-sm text-gray-500 mt-2">Loading archived articles...</p>
+                      <p className="text-sm text-gray-500 mt-2">Loading feeds...</p>
                     </td>
                   </tr>
-                ) : filteredFeeds.length === 0 ? (
+                ) : feeds.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center">
                       <ArchiveIcon size={32} className="text-gray-300 mx-auto mb-2" />
                       <p className="text-gray-400">
-                        {searchQuery
-                          ? "No archived articles match your search"
-                          : "No archived articles"}
+                        {searchQuery ? "No feeds match your search" : "No taken down feeds"}
                       </p>
                     </td>
                   </tr>
                 ) : (
-                  filteredFeeds.map((feed) => {
+                  feeds.map((feed) => {
                     const coverImage = feed.resources?.find(
                       (r) => r.name === "cover_image"
                     )?.url;
@@ -268,11 +277,8 @@ export function ArticleArchive() {
                         </td>
                         <td className="px-4 py-3 text-gray-700">
                           <div className="font-medium line-clamp-2">{feed.title}</div>
-                          <div className="text-xs text-gray-500 mt-1 line-clamp-1">
-                            {feed.description}
-                          </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{feed.provider.name}</td>
+                        <td className="px-4 py-3">{getSourceBadge(feed)}</td>
                         <td className="px-4 py-3 text-gray-500">
                           {formatDate(feed.deleted_at || undefined)}
                         </td>
@@ -280,7 +286,7 @@ export function ArticleArchive() {
                           <button
                             onClick={() => handleRestore(feed.id)}
                             className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 transition-colors text-xs font-medium"
-                            title="Restore article"
+                            title="Restore feed"
                           >
                             <RotateCcw size={14} />
                             Restore
@@ -294,11 +300,28 @@ export function ArticleArchive() {
             </table>
           </div>
 
-          {/* Summary */}
-          {!loading && filteredFeeds.length > 0 && (
-            <div className="mt-4 text-sm text-gray-500 text-center">
-              Showing {filteredFeeds.length} archived article
-              {filteredFeeds.length !== 1 ? "s" : ""}
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-gray-500">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
