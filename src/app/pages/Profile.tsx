@@ -1,18 +1,70 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { User, Mail, Camera, Save } from "lucide-react";
+import { apiClient } from "../services/api";
 
 export function Profile() {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [userId, setUserId] = useState("");
+  
   const [profile, setProfile] = useState({
-    fullName: "Admin User",
-    email: "admin@example.com",
-    role: "Administrator",
+    fullName: "",
+    email: "",
+    role: "",
     bio: "Managing the Yalla News platform content and settings.",
   });
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Simulate save API call
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const storedUserStr = localStorage.getItem("user");
+        if (!storedUserStr) {
+          throw new Error("User not found in local storage");
+        }
+        const storedUser = JSON.parse(storedUserStr);
+        setUserId(storedUser.id || "");
+        
+        if (storedUser.id) {
+            const userData = await apiClient.getUserById(storedUser.id);
+            setProfile(prev => ({
+              ...prev,
+              fullName: userData.display_name || "",
+              email: userData.email || "",
+              role: userData.role || "",
+            }));
+        } else {
+             setProfile(prev => ({
+              ...prev,
+              fullName: storedUser.display_name || "",
+              email: storedUser.email || "",
+              role: storedUser.role || "",
+            }));
+        }
+      } catch (err: any) {
+        setError("Failed to load user profile");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      if (userId) {
+        await apiClient.updateUser(userId, {
+          display_name: profile.fullName,
+        });
+      }
+      setIsEditing(false);
+      setError("");
+    } catch (err) {
+      setError("Failed to update profile");
+      console.error(err);
+    }
   };
 
   return (
@@ -21,7 +73,8 @@ export function Profile() {
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
         <button
           onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
         >
           {isEditing ? (
             <>
@@ -33,8 +86,17 @@ export function Profile() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Header/Cover */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-100">
+          {error}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="text-center py-12 text-gray-500">Loading profile...</div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Header/Cover */}
         <div className="h-32 bg-gradient-to-r from-indigo-500 to-purple-600 relative">
           <div className="absolute -bottom-12 left-8">
             <div className="relative group">
@@ -135,7 +197,8 @@ export function Profile() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

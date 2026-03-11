@@ -213,7 +213,13 @@ export function Layout() {
                   </button>
                   <div className="border-t border-gray-100 mt-1 pt-1">
                     <button 
-                      onClick={() => { setProfileOpen(false); navigate("/login"); }}
+                      onClick={() => { 
+                        setProfileOpen(false); 
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("user");
+                        navigate("/login"); 
+                        window.location.reload();
+                      }}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
                       <LogOut size={14} /> Sign out

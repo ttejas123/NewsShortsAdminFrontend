@@ -97,7 +97,7 @@ export interface Feed {
   resources: Resource[];
   sentiment?: any;
   entities?: any[];
-  admin_feed_id?: string | null;  // Link to admin_feeds table if admin-generated
+  admin_feed_id?: string | null; // Link to admin_feeds table if admin-generated
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
@@ -221,4 +221,42 @@ export interface ProcessingStats {
 
 export interface APIError {
   error: string;
+}
+
+export interface User {
+  id?: string;
+  sysuid?: string;
+  email?: string;
+  display_name?: string;
+  profile_picture?: string;
+  role?: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+export interface LoginRequest {
+  email?: string;
+  password?: string;
+}
+
+export interface RegisterRequest {
+  email?: string;
+  password?: string;
+  display_name?: string;
+  profile_picture?: string;
+}
+
+export interface ResetPasswordRequest {
+  email?: string;
+  token?: string;
+  newPassword?: string;
+}
+
+export interface ToggleActionRequest {
+  sysuid: string;
+  feed_id: string;
+  action_type: "like" | "share" | "save";
 }

@@ -1,24 +1,51 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router";
 import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { apiClient } from "../services/api";
 
 export function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate registration
-    navigate("/");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await apiClient.register({
+        email,
+        password,
+        display_name: fullName,
+      });
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+      navigate("/");
+    } catch (err: any) {
+      setError(err.message || "Failed to register. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleRegister = () => {
     // Simulate Google registration
     navigate("/");
   };
+
+    useEffect(() => {
+      if (localStorage.getItem("token")) {
+        apiClient.getMe().then((user) => {
+          localStorage.setItem("user", JSON.stringify(user));
+          navigate("/");
+        });
+      }
+    }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -121,12 +148,19 @@ export function Register() {
               </div>
             </div>
 
+            {error && (
+              <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-100">
+                {error}
+              </div>
+            )}
+
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                disabled={isLoading}
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sign up
+                {isLoading ? "Signing up..." : "Sign up"}
               </button>
             </div>
           </form>

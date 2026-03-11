@@ -1,5 +1,6 @@
 import React from "react";
 import { createBrowserRouter } from "react-router";
+import { AuthGuard } from "./components/AuthGuard";
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { FlowDiagram } from "./pages/FlowDiagram";
@@ -27,9 +28,13 @@ export const router = createBrowserRouter([
   },
   {
     path: "/",
-    Component: Layout,
+    Component: AuthGuard,
     children: [
-      { index: true, Component: Dashboard },
+      {
+        path: "/",
+        Component: Layout,
+        children: [
+          { index: true, Component: Dashboard },
       { path: "profile", Component: Profile },
       { path: "settings", Component: Settings },
       { path: "flow", Component: FlowDiagram },
@@ -48,6 +53,8 @@ export const router = createBrowserRouter([
       { path: "feeds/published", Component: PublishedFeeds },
       { path: "feeds/edit/:id", Component: ClientFeedEdit },
       { path: "feeds/taken-down", Component: TakenDownFeeds },
+        ],
+      },
     ],
   },
 ]);

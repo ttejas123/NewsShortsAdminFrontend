@@ -11,9 +11,16 @@ import type {
   ProviderStats,
   TopFeed,
   ProcessingStats,
+  User,
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  ToggleActionRequest,
 } from "../types/api";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 class APIClient {
   private readonly baseUrl: string;
@@ -24,20 +31,33 @@ class APIClient {
 
   private async request<T>(
     endpoint: string,
-    options?: RequestInit
+    options?: RequestInit,
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
+    const token = localStorage.getItem("token");
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(options?.headers as Record<string, string>),
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     try {
       const response = await fetch(url, {
         ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers,
-        },
+        headers,
       });
 
       if (!response.ok) {
+        if (response.status === 401 && window.location.pathname !== "/login") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+        }
+
         const errorData = await response.json().catch(() => ({}));
         throw {
           message: errorData.message || errorData.error || "An error occurred",
@@ -45,7 +65,7 @@ class APIClient {
           errors: errorData.errors,
         };
       }
-      if(response.status === 204) {
+      if (response.status === 204) {
         return { message: "No content" } as unknown as T;
       } else {
         return await response.json();
@@ -70,7 +90,13 @@ class APIClient {
   }
 
   async getProviderStats(days: number = 7): Promise<ProviderStats[]> {
-    return this.request<ProviderStats[]>(`/analytics/feeds-by-provider?days=${days}`);
+    return this.request<ProviderStats[]>(
+      `/analytics/feeds-by-provider?days=${days}`,
+    );
+  }
+
+  async getMe(): Promise<User> {
+    return this.request<User>("/auth/me");
   }
 
   async getTopFeeds(params?: {
@@ -84,7 +110,9 @@ class APIClient {
     if (params?.lang) queryParams.append("lang", params.lang);
 
     const query = queryParams.toString();
-    return this.request<TopFeed[]>(`/analytics/top-feeds${query ? `?${query}` : ""}`);
+    return this.request<TopFeed[]>(
+      `/analytics/top-feeds${query ? `?${query}` : ""}`,
+    );
   }
 
   async getProcessingStats(): Promise<ProcessingStats[]> {
@@ -107,7 +135,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<RSSSource>>(
-      `/rss-sources${query ? `?${query}` : ""}`
+      `/rss-sources${query ? `?${query}` : ""}`,
     );
   }
 
@@ -124,7 +152,7 @@ class APIClient {
 
   async updateRSSSource(
     id: string,
-    data: UpdateRSSSourceRequest
+    data: UpdateRSSSourceRequest,
   ): Promise<RSSSource> {
     return this.request<RSSSource>(`/rss-sources/${id}`, {
       method: "PUT",
@@ -145,7 +173,10 @@ class APIClient {
     });
   }
 
-  async toggleRSSSourceStatus(id: string, is_active: boolean): Promise<RSSSource> {
+  async toggleRSSSourceStatus(
+    id: string,
+    is_active: boolean,
+  ): Promise<RSSSource> {
     return this.request<RSSSource>(`/rss-sources/${id}`, {
       method: "PATCH",
       body: JSON.stringify({ is_active }),
@@ -154,7 +185,7 @@ class APIClient {
 
   async getFeedsBySourceId(
     sourceId: string,
-    params?: { page?: number; limit?: number }
+    params?: { page?: number; limit?: number },
   ): Promise<PaginatedResponse<Feed>> {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append("page", params.page.toString());
@@ -162,7 +193,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<Feed>>(
-      `/rss-sources/${sourceId}/feeds${query ? `?${query}` : ""}`
+      `/rss-sources/${sourceId}/feeds${query ? `?${query}` : ""}`,
     );
   }
 
@@ -187,7 +218,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<CursorPaginatedResponse<Feed>>(
-      `/feed${query ? `?${query}` : ""}`
+      `/feed${query ? `?${query}` : ""}`,
     );
   }
 
@@ -226,7 +257,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<Feed>>(
-      `/feed/taken-down${query ? `?${query}` : ""}`
+      `/feed/taken-down${query ? `?${query}` : ""}`,
     );
   }
 
@@ -259,7 +290,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<DraftFeed>>(
-      `/admin-feeds/queue${query ? `?${query}` : ""}`
+      `/admin-feeds/queue${query ? `?${query}` : ""}`,
     );
   }
 
@@ -268,7 +299,19 @@ class APIClient {
     limit?: number;
     search?: string;
     created_by?: string;
-  }): Promise<PaginatedResponse<{ Feed: Feed, DraftFeed: DraftFeed, published_at: string, createdAt: string, createdBy: string, draftId: string, feedId: string, id: string, updatedAt: string }>> {
+  }): Promise<
+    PaginatedResponse<{
+      Feed: Feed;
+      DraftFeed: DraftFeed;
+      published_at: string;
+      createdAt: string;
+      createdBy: string;
+      draftId: string;
+      feedId: string;
+      id: string;
+      updatedAt: string;
+    }>
+  > {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append("page", params.page.toString());
     if (params?.limit) queryParams.append("limit", params.limit.toString());
@@ -277,7 +320,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<Feed>>(
-      `/admin-feeds/published${query ? `?${query}` : ""}`
+      `/admin-feeds/published${query ? `?${query}` : ""}`,
     );
   }
 
@@ -296,7 +339,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<DraftFeed>>(
-      `/admin-feeds/drafts${query ? `?${query}` : ""}`
+      `/admin-feeds/drafts${query ? `?${query}` : ""}`,
     );
   }
 
@@ -344,7 +387,7 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<Feed>>(
-      `/admin-feeds/published${query ? `?${query}` : ""}`
+      `/admin-feeds/published${query ? `?${query}` : ""}`,
     );
   }
 
@@ -354,15 +397,21 @@ class APIClient {
 
   // Soft Delete & Restore
   async softDeleteFeed(feedId: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/admin-feeds/drafts/${feedId}/soft-delete`, {
-      method: "POST",
-    });
+    return this.request<{ message: string }>(
+      `/admin-feeds/drafts/${feedId}/soft-delete`,
+      {
+        method: "POST",
+      },
+    );
   }
 
   async restoreFeed(feedId: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/admin-feeds/drafts/${feedId}/restore`, {
-      method: "POST",
-    });
+    return this.request<{ message: string }>(
+      `/admin-feeds/drafts/${feedId}/restore`,
+      {
+        method: "POST",
+      },
+    );
   }
 
   async getDeletedFeeds(params?: {
@@ -375,8 +424,81 @@ class APIClient {
 
     const query = queryParams.toString();
     return this.request<PaginatedResponse<Feed>>(
-      `/admin-feeds/drafts/deleted${query ? `?${query}` : ""}`
+      `/admin-feeds/drafts/deleted${query ? `?${query}` : ""}`,
     );
+  }
+
+  // Auth Methods
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    return this.request<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async register(data: RegisterRequest): Promise<AuthResponse> {
+    return this.request<AuthResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(
+    data: ResetPasswordRequest,
+  ): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  // User Methods
+  async getOrCreateUserBySysuid(sysuid: string): Promise<User> {
+    return this.request<User>("/users", {
+      method: "POST",
+      body: JSON.stringify({ sysuid }),
+    });
+  }
+
+  async getUserById(userId: string): Promise<User> {
+    return this.request<User>(`/users/${userId}`);
+  }
+
+  async updateUser(
+    userId: string,
+    data: Partial<User>,
+  ): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateUserRole(
+    userId: string,
+    role: string,
+  ): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/users/${userId}/role`, {
+      method: "PUT",
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  // User Actions
+  async toggleUserAction(
+    data: ToggleActionRequest,
+  ): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/user-actions/toggle", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 }
 
