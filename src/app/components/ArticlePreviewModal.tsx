@@ -11,8 +11,17 @@ interface ArticlePreviewModalProps {
 
 export function ArticlePreviewModal({ feed, isOpen, onClose, onEdit }: ArticlePreviewModalProps) {
   if (!isOpen || !feed) return null;
-
-  const coverImage = feed.resources?.find((r) => r.name === "cover_image")?.url;
+  const feedData: any = {
+    ...feed,
+    status: feed.Status || feed.status,
+    provider: feed.Provider || feed.provider,
+    author: feed.Author || feed.author,
+    source: feed.Source || feed.source,
+    category: feed.Category || feed.category,
+    language: feed.Language || feed.language,
+    region: feed.Region || feed.region,
+  }
+  const coverImage = feedData.resources?.find((r: any) => r.name === "cover_image")?.url;
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
@@ -61,27 +70,27 @@ export function ArticlePreviewModal({ feed, isOpen, onClose, onEdit }: ArticlePr
             {/* Left: Details */}
             <div className="space-y-4">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{feed.title}</h3>
-                {feed.subtitle && (
-                  <p className="text-lg text-gray-600">{feed.subtitle}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{feedData.title}</h3>
+                {feedData.subtitle && (
+                  <p className="text-lg text-gray-600">{feedData.subtitle}</p>
                 )}
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    feed.status.name
+                    feedData.status.name
                   )}`}
                 >
-                  {feed.status.name}
+                  {feedData.status.name}
                 </span>
-                {feed.is_featured && (
+                {feedData.is_featured && (
                   <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
                     Featured
                   </span>
                 )}
                 <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                  {feed.layout}
+                  {feedData.layout}
                 </span>
               </div>
 
@@ -89,45 +98,45 @@ export function ArticlePreviewModal({ feed, isOpen, onClose, onEdit }: ArticlePr
                 <div className="flex items-center gap-2 text-gray-600">
                   <User size={16} />
                   <span className="font-medium">Provider:</span>
-                  <span>{feed.provider.name}</span>
+                  <span>{feedData.provider.name}</span>
                 </div>
 
                 <div className="flex items-center gap-2 text-gray-600">
                   <Clock size={16} />
                   <span className="font-medium">Published:</span>
-                  <span>{formatDate(feed.published_at)}</span>
+                  <span>{formatDate(feedData.published_at)}</span>
                 </div>
 
                 <div className="flex items-center gap-2 text-gray-600">
                   <TrendingUp size={16} />
                   <span className="font-medium">Engagement:</span>
-                  <span>{feed.engagement_score.toFixed(2)}</span>
+                  <span>{feedData.engagement_score.toFixed(2)}</span>
                 </div>
 
                 <div className="flex items-start gap-2 text-gray-600">
                   <TagIcon size={16} className="mt-0.5" />
                   <span className="font-medium">Category:</span>
-                  <span>{feed.category.name}</span>
+                  <span>{feedData.category.name}</span>
                 </div>
 
                 <div className="flex items-start gap-2 text-gray-600">
                   <span className="font-medium">Language:</span>
                   <span>
-                    {feed.language.name} ({feed.language.code})
+                    {feedData.language.name} ({feedData.language.code})
                   </span>
                 </div>
 
                 <div className="flex items-start gap-2 text-gray-600">
                   <span className="font-medium">Region:</span>
-                  <span>{feed.region.name}</span>
+                  <span>{feedData.region.name}</span>
                 </div>
               </div>
 
-              {feed.tags && feed.tags.length > 0 && (
+              {feedData.tags && feedData.tags.length > 0 && (
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">Tags:</p>
                   <div className="flex flex-wrap gap-2">
-                    {feed.tags.map((tag) => (
+                    {feedData.tags.map((tag:any) => (
                       <span
                         key={tag.id}
                         className="px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded-md"
@@ -141,14 +150,14 @@ export function ArticlePreviewModal({ feed, isOpen, onClose, onEdit }: ArticlePr
 
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Description:</p>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {feed.description}
+                <p className="text-sm text-gray-600 leading-relaxed wrap-break-word">
+                  {feedData.description}
                 </p>
               </div>
 
-              {feed.web_url && (
+              {feedData.web_url && (
                 <a
-                  href={feed.web_url}
+                  href={feedData.web_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-indigo-600 hover:underline"
@@ -186,21 +195,21 @@ export function ArticlePreviewModal({ feed, isOpen, onClose, onEdit }: ArticlePr
                     {coverImage && (
                       <img
                         src={coverImage}
-                        alt={feed.title}
+                        alt={feedData.title}
                         className="w-full h-40 object-cover"
                       />
                     )}
                     <div className="p-4">
                       <h3 className="text-gray-900 text-sm font-semibold mb-2 line-clamp-2">
-                        {feed.title}
+                        {feedData.title}
                       </h3>
-                      <p className="text-xs text-gray-500 mb-2">{feed.provider.name}</p>
-                      <p className="text-xs text-gray-600 leading-relaxed line-clamp-6">
-                        {feed.description}
+                      <p className="text-xs text-gray-500 mb-2">{feedData.provider.name}</p>
+                      <p className="text-xs text-gray-600 leading-relaxed line-clamp-6 wrap-break-word">
+                        {feedData.description}
                       </p>
                       <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
-                        <span>{formatDate(feed.published_at).split(",")[0]}</span>
-                        <span>⭐ {feed.engagement_score.toFixed(1)}</span>
+                        <span>{formatDate(feedData.published_at).split(",")[0]}</span>
+                        <span>⭐ {feedData.engagement_score.toFixed(1)}</span>
                       </div>
                     </div>
                   </div>
@@ -224,7 +233,7 @@ export function ArticlePreviewModal({ feed, isOpen, onClose, onEdit }: ArticlePr
             Close
           </button>
           <button
-            onClick={() => onEdit(feed.id)}
+            onClick={() => onEdit(feedData.id)}
             className="flex items-center gap-2 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <Edit3 size={16} />

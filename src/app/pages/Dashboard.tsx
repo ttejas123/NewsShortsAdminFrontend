@@ -195,7 +195,7 @@ export function Dashboard() {
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-800">Top 5 Recent Feeds</h2>
             <button
-              onClick={() => navigate("/articles/queue")}
+              onClick={() => navigate("/feeds/published")}
               className="text-xs text-indigo-600 hover:underline"
             >
               View all
@@ -207,7 +207,7 @@ export function Dashboard() {
                 No recent feeds available
               </div>
             ) : (
-              topFeeds.map((feed) => (
+              topFeeds.map((feed: any) => (
                 <div
                   key={feed.id}
                   className="px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50 transition-colors cursor-pointer"

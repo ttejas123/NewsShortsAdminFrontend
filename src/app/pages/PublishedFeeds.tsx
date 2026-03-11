@@ -9,6 +9,7 @@ import {
   FileText,
   Trash2,
   Filter,
+  Clock,
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import type { Feed } from "../types/api";
@@ -31,12 +32,35 @@ export function PublishedFeeds() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [recentFeeds, setRecentFeeds] = useState<any[]>([]);
   const limit = 20;
 
   useEffect(() => {
     loadFeeds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, page]);
+
+  useEffect(() => {
+    loadRecentFeeds();
+  }, []);
+
+  const loadRecentFeeds = async () => {
+    try {
+      const feeds = await apiClient.getTopFeeds({ limit: 5 });
+      setRecentFeeds(feeds);
+    } catch (err) {
+      console.error("Failed to load recent feeds:", err);
+    }
+  };
+
+  const handleRecentFeedClick = async (feedId: string) => {
+    try {
+      const feed = await apiClient.getFeedById(feedId);
+      setPreviewFeed(feed);
+    } catch (err: any) {
+      alert(err.message || "Failed to load feed preview");
+    }
+  };
 
   const loadFeeds = async () => {
     try {
@@ -155,6 +179,19 @@ export function PublishedFeeds() {
     return `${days}d ago`;
   };
 
+  const formatTimeAgo = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours} hr ago`;
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  };
+
   const anyChecked = selected.size > 0;
 
   return (
@@ -183,6 +220,42 @@ export function PublishedFeeds() {
           >
             Retry
           </button>
+        </div>
+      )}
+
+      {/* Top 5 Recent Feeds */}
+      {recentFeeds.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-800 mb-3">Top 5 Recent Feeds</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {recentFeeds.map((feed: any) => (
+              <div 
+                key={feed.id} 
+                className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col h-full"
+                onClick={() => handleRecentFeedClick(feed.id)}
+              >
+                <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1" title={feed.title}>{feed.title}</h3>
+                <p className="text-xs text-gray-500 line-clamp-2 flex-grow mb-3" title={feed.description || feed.subtitle || "No description available"}>
+                  {feed.description || feed.subtitle || "No description available"}
+                </p>
+                <div className="mt-auto flex items-center justify-between">
+                  {feed.Language?.name ? (
+                    <span className="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full capitalize">
+                      {feed.Language?.name }
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full capitalize">
+                      Unknown
+                    </span>
+                  )}
+                  <span className="text-[11px] text-gray-400 flex items-center gap-1 shrink-0">
+                    <Clock size={10} />
+                    {formatTimeAgo(feed.published_at || feed.created_at)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -354,7 +427,7 @@ export function PublishedFeeds() {
                         <td className="px-4 py-3 text-gray-700">
                           <div className="font-medium line-clamp-2">{feed.title}</div>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{feed.provider.name}</td>
+                        <td className="px-4 py-3 text-gray-600">{feed.provider?.name}</td>
                         <td className="px-4 py-3">{getSourceBadge(feed)}</td>
                         <td className="px-4 py-3 text-gray-500">
                           {formatDate(feed.published_at)}

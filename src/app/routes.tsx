@@ -11,13 +11,27 @@ import { AdminPublished } from "./pages/AdminPublished";
 import { PublishedFeeds } from "./pages/PublishedFeeds";
 import { ClientFeedEdit } from "./pages/ClientFeedEdit";
 import { TakenDownFeeds } from "./pages/TakenDownFeeds";
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
+import { Profile } from "./pages/Profile";
+import { Settings } from "./pages/Settings";
 
 export const router = createBrowserRouter([
+  {
+    path: "/login",
+    Component: Login,
+  },
+  {
+    path: "/register",
+    Component: Register,
+  },
   {
     path: "/",
     Component: Layout,
     children: [
       { index: true, Component: Dashboard },
+      { path: "profile", Component: Profile },
+      { path: "settings", Component: Settings },
       { path: "flow", Component: FlowDiagram },
       { path: "rss/setup", Component: RSSFeedSetup },
       { path: "rss/setup/:id", Component: RSSFeedSetup },

@@ -92,7 +92,7 @@ export function Layout() {
           </div>
           {sidebarOpen && (
             <span className="text-white font-semibold text-sm tracking-wide truncate">
-              FeedAdmin Pro
+              Yalla News Admin
             </span>
           )}
         </div>
@@ -162,7 +162,10 @@ export function Layout() {
 
         {/* Bottom */}
         <div className="p-2 border-t border-white/10">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+          <button 
+            onClick={() => navigate("/settings")}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+          >
             <Settings size={18} className="flex-shrink-0" />
             {sidebarOpen && <span>Settings</span>}
           </button>
@@ -173,23 +176,7 @@ export function Layout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-4 flex-shrink-0 z-10">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search articles, feeds..."
-                className="w-full pl-9 pr-4 py-1.5 text-sm bg-gray-100 border border-transparent rounded-lg focus:outline-none focus:border-indigo-300 focus:bg-white transition-colors"
-              />
-            </div>
-          </div>
+          
 
           <div className="ml-auto flex items-center gap-3">
             <button className="relative text-gray-500 hover:text-gray-700 transition-colors">
@@ -212,14 +199,23 @@ export function Layout() {
               </button>
               {profileOpen && (
                 <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                  <button 
+                    onClick={() => { setProfileOpen(false); navigate("/profile"); }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
                     <User size={14} /> Profile
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                  <button 
+                    onClick={() => { setProfileOpen(false); navigate("/settings"); }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
                     <Settings size={14} /> Settings
                   </button>
                   <div className="border-t border-gray-100 mt-1 pt-1">
-                    <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                    <button 
+                      onClick={() => { setProfileOpen(false); navigate("/login"); }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
                       <LogOut size={14} /> Sign out
                     </button>
                   </div>

@@ -82,11 +82,17 @@ export interface Feed {
   Provider: Provider;
   provider?: Provider;
   Author: Author;
+  author?: Author;
   Source: Source;
+  source?: Source;
   Category: Category;
+  category?: Category;
   Language: Language;
+  language?: Language;
   Region: Region;
+  region?: Region;
   status: Status;
+  Status?: Status;
   tags: Tag[];
   resources: Resource[];
   sentiment?: any;
