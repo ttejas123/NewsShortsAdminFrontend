@@ -18,6 +18,7 @@ import { Profile } from "./pages/Profile";
 import { Settings } from "./pages/Settings";
 import { UserManagement } from "./pages/UserManagement";
 import { AdsManagement } from "./pages/AdsManagement";
+import { OAuthCallback } from "./pages/OAuthCallback";
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +28,10 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     Component: Register,
+  },
+  {
+    path: "/oauth/callback",
+    Component: OAuthCallback,
   },
   {
     path: "/",

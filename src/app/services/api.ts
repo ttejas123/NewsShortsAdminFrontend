@@ -23,7 +23,7 @@ import type {
 } from "../types/api";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 class APIClient {
   private readonly baseUrl: string;
@@ -322,7 +322,7 @@ class APIClient {
     if (params?.created_by) queryParams.append("created_by", params.created_by);
 
     const query = queryParams.toString();
-    return this.request<PaginatedResponse<Feed>>(
+    return this.request<PaginatedResponse<any>>(
       `/admin-feeds/published${query ? `?${query}` : ""}`,
     );
   }
@@ -441,6 +441,13 @@ class APIClient {
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
     return this.request<AuthResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createUser(data: RegisterRequest & { role?: string }): Promise<User> {
+    return this.request<User>("/users", {
       method: "POST",
       body: JSON.stringify(data),
     });

@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   User as UserIcon,
   MoreVertical,
-  Loader2
+  Loader2,
+  Pencil
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import { User } from "../types/api";
@@ -36,6 +37,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { Label } from "../components/ui/label";
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -44,6 +54,20 @@ export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    email: "",
+    display_name: "",
+    role: "client",
+    password: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -58,14 +82,6 @@ export function UserManagement() {
       setError(null);
     } catch (err: any) {
       setError(err.message || "Failed to fetch users");
-      // Fallback dummy data if API fails (useful for initial dev/testing if backend is missing endpoints)
-      /*
-      setUsers([
-        { id: "1", email: "admin@example.com", display_name: "Admin User", role: "admin" },
-        { id: "2", email: "manager@example.com", display_name: "Manager User", role: "manager" },
-        { id: "3", email: "client@example.com", display_name: "Client User", role: "client" },
-      ]);
-      */
     } finally {
       setIsLoading(false);
     }
@@ -95,6 +111,65 @@ export function UserManagement() {
     }
   };
 
+  const handleOpenAddModal = () => {
+    setFormData({
+      email: "",
+      display_name: "",
+      role: "client",
+      password: "",
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditModal = (user: User) => {
+    setSelectedUser(user);
+    setFormData({
+      email: user.email || "",
+      display_name: user.display_name || "",
+      role: user.role || "client",
+      password: "", // Don't pre-fill password
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await apiClient.createUser(formData);
+      setIsAddModalOpen(false);
+      fetchUsers(); // Refresh list
+    } catch (err: any) {
+      alert(err.message || "Failed to create user");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser?.id) return;
+    setIsSubmitting(true);
+    try {
+      const updateData: Partial<User> & { password?: string } = {
+        email: formData.email,
+        display_name: formData.display_name,
+        role: formData.role,
+      };
+      if (formData.password) {
+        updateData.password = formData.password;
+      }
+      
+      await apiClient.updateUser(selectedUser.id, updateData);
+      setIsEditModalOpen(false);
+      fetchUsers(); // Refresh list
+    } catch (err: any) {
+      alert(err.message || "Failed to update user");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getRoleBadge = (role?: string) => {
     switch (role) {
       case "admin":
@@ -113,7 +188,10 @@ export function UserManagement() {
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-500">Manage user accounts and permissions.</p>
         </div>
-        <Button className="bg-indigo-600 hover:bg-indigo-700">
+        <Button 
+          className="bg-indigo-600 hover:bg-indigo-700"
+          onClick={handleOpenAddModal}
+        >
           <UserPlus size={18} className="mr-2" /> Add New User
         </Button>
       </div>
@@ -201,6 +279,9 @@ export function UserManagement() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleOpenEditModal(user)}>
+                              <Pencil size={14} className="mr-2" /> Edit User
+                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-red-600 focus:text-red-700 focus:bg-red-50"
                               onClick={() => handleDeleteUser(user.id!)}
@@ -243,6 +324,151 @@ export function UserManagement() {
           </div>
         </div>
       </div>
+
+      {/* Add User Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account with specific permissions.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateUser}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="add-name">Display Name</Label>
+                <Input
+                  id="add-name"
+                  value={formData.display_name}
+                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-email">Email</Label>
+                <Input
+                  id="add-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-password">Password</Label>
+                <Input
+                  id="add-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-role">Role</Label>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(val) => setFormData({ ...formData, role: val })}
+                >
+                  <SelectTrigger id="add-role">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="client">Client</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
+                Create User
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user details or change their role.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUser}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Display Name</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.display_name}
+                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-password">New Password (leave blank to keep current)</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-role">Role</Label>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(val) => setFormData({ ...formData, role: val })}
+                >
+                  <SelectTrigger id="edit-role">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="client">Client</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

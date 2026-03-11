@@ -29,8 +29,7 @@ export function Login() {
   };
 
   const handleGoogleLogin = () => {
-    // Simulate Google Login
-    navigate("/");
+    window.location.href = "http://localhost:3000/api/auth/google";
   };
 
   useEffect(() => {
