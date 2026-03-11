@@ -16,6 +16,8 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
 import { Settings } from "./pages/Settings";
+import { UserManagement } from "./pages/UserManagement";
+import { AdsManagement } from "./pages/AdsManagement";
 
 export const router = createBrowserRouter([
   {
@@ -53,6 +55,10 @@ export const router = createBrowserRouter([
       { path: "feeds/published", Component: PublishedFeeds },
       { path: "feeds/edit/:id", Component: ClientFeedEdit },
       { path: "feeds/taken-down", Component: TakenDownFeeds },
+      
+      // Management
+      { path: "users", Component: UserManagement },
+      { path: "ads", Component: AdsManagement },
         ],
       },
     ],

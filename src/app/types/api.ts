@@ -260,3 +260,33 @@ export interface ToggleActionRequest {
   feed_id: string;
   action_type: "like" | "share" | "save";
 }
+
+export interface Ad {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  link_url: string;
+  is_active: boolean;
+  position: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateAdRequest {
+  title: string;
+  description: string;
+  image_url: string;
+  link_url: string;
+  position: string;
+  is_active?: boolean;
+}
+
+export interface UpdateAdRequest {
+  title?: string;
+  description?: string;
+  image_url?: string;
+  link_url?: string;
+  position?: string;
+  is_active?: boolean;
+}

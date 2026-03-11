@@ -17,6 +17,9 @@ import type {
   RegisterRequest,
   ResetPasswordRequest,
   ToggleActionRequest,
+  Ad,
+  CreateAdRequest,
+  UpdateAdRequest,
 } from "../types/api";
 
 const API_BASE_URL =
@@ -498,6 +501,60 @@ class APIClient {
     return this.request<{ message: string }>("/user-actions/toggle", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  }
+
+  // User Management
+  async getUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+  }): Promise<PaginatedResponse<User>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.role) queryParams.append("role", params.role);
+
+    const query = queryParams.toString();
+    return this.request<PaginatedResponse<User>>(
+      `/users${query ? `?${query}` : ""}`,
+    );
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    return this.request<void>(`/users/${userId}`, {
+      method: "DELETE",
+    });
+  }
+
+  // Ads Management
+  async getAds(): Promise<Ad[]> {
+    return this.request<Ad[]>("/ads");
+  }
+
+  async getAdById(id: string): Promise<Ad> {
+    return this.request<Ad>(`/ads/${id}`);
+  }
+
+  async createAd(data: CreateAdRequest): Promise<Ad> {
+    return this.request<Ad>("/ads", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAd(id: string, data: UpdateAdRequest): Promise<Ad> {
+    return this.request<Ad>(`/ads/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAd(id: string): Promise<void> {
+    return this.request<void>(`/ads/${id}`, {
+      method: "DELETE",
     });
   }
 }

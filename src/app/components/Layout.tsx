@@ -18,6 +18,8 @@ import {
   X,
   ListFilter,
   Plus,
+  Users,
+  Megaphone,
 } from "lucide-react";
 
 interface NavItem {
@@ -62,6 +64,16 @@ const navItems: NavItem[] = [
       { label: "Live Feeds", path: "/feeds/published", icon: <FileText size={16} /> },
       { label: "Taken Down", path: "/feeds/taken-down", icon: <Archive size={16} /> },
     ],
+  },
+  {
+    label: "User Management",
+    icon: <Users size={18} />,
+    path: "/users",
+  },
+  {
+    label: "Ads Management",
+    icon: <Megaphone size={18} />,
+    path: "/ads",
   },
 ];
 
