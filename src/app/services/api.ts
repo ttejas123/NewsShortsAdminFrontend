@@ -87,6 +87,10 @@ class APIClient {
   async getDashboardSummary(): Promise<DashboardSummary> {
     return this.request<DashboardSummary>("/analytics/dashboard-summary");
   }
+  
+  async getDashboardSummary24(): Promise<DashboardSummary> {
+    return this.request<DashboardSummary>("/analytics/dashboard-summary-24h");
+  }
 
   async getTodayStats(): Promise<TodayStats> {
     return this.request<TodayStats>("/analytics/today-stats");

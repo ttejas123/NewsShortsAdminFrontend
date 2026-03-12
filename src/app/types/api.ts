@@ -5,6 +5,7 @@ export interface DashboardSummary {
   inactive_rss_sources: number;
   recent_cron_runs_24h: number;
   avg_engagement_score: string;
+  feeds_diff: string;
 }
 
 export interface Provider {

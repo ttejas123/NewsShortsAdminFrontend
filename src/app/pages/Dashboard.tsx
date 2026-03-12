@@ -42,7 +42,7 @@ export function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiClient.getDashboardSummary();
+      const data = await apiClient.getDashboardSummary24();
       setAnalytics(data);
     } catch (err: any) {
       setError(err.message || "Failed to load analytics");
@@ -97,7 +97,8 @@ export function Dashboard() {
           value: analytics.total_feeds.toLocaleString(),
           icon: <FileText size={20} />,
           color: "bg-indigo-500",
-          change: "All time",
+          change: "Last 24 hours",
+          diff: analytics.feeds_diff,
         },
         {
           label: "Cron Runs (24h)",
@@ -181,7 +182,14 @@ export function Dashboard() {
                 </span>
                 <TrendingUp size={16} className="text-gray-300" />
               </div>
-              <p className="text-2xl text-gray-900 font-semibold">{s.value}</p>
+              <p className="text-2xl text-gray-900 font-semibold">
+                {s.value}
+                {
+                  s.diff && (
+                    <span className={`text-xs text-normal ml-1 ${s.diff.startsWith("+") ? "text-green-500" : "text-red-500"}`}>{s.diff}</span>
+                  )
+                }
+              </p>
               <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
               <p className="text-xs text-indigo-600 mt-1">{s.change}</p>
             </div>

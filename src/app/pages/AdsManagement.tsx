@@ -41,8 +41,38 @@ import {
   SelectValue,
 } from "../components/ui/select";
 
+const DUMMY_ADS: Ad[] = [
+  {
+    id: "1",
+    title: "Premium News Subscription",
+    description: "Upgrade to premium for an ad-free experience and exclusive content.",
+    image_url: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop",
+    link_url: "https://example.com/premium",
+    position: "top_banner",
+    is_active: true,
+  },
+  {
+    id: "2",
+    title: "Global Tech Summit 2024",
+    description: "Join the leaders in technology this summer. Early bird tickets available now.",
+    image_url: "https://images.unsplash.com/photo-1540575861501-7ad058c48a33?q=80&w=2070&auto=format&fit=crop",
+    link_url: "https://example.com/summit",
+    position: "middle_feed",
+    is_active: false,
+  },
+  {
+    id: "3",
+    title: "Modern Minimalist Watch",
+    description: "Elegant design meets precision engineering. Shop the new collection.",
+    image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
+    link_url: "https://example.com/watches",
+    position: "sidebar",
+    is_active: true,
+  }
+];
+
 export function AdsManagement() {
-  const [ads, setAds] = useState<Ad[]>([]);
+  const [ads, setAds] = useState<Ad[]>(DUMMY_ADS);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -65,25 +95,16 @@ export function AdsManagement() {
     setIsLoading(true);
     try {
       const response = await apiClient.getAds();
-      // Ensure response is an array (handle cases where backend might return something else if not ready)
-      setAds(Array.isArray(response) ? response : []);
+      // Ensure response is an array
+      const fetchedAds = Array.isArray(response) ? response : [];
+      setAds(fetchedAds.length > 0 ? fetchedAds : DUMMY_ADS);
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch ads");
-      // Fallback dummy data for development
-      /*
-      setAds([
-        { 
-          id: "1", 
-          title: "Premium Subscription", 
-          description: "Get ad-free news for just $5/mo", 
-          image_url: "https://placehold.co/600x400", 
-          link_url: "https://example.com/premium",
-          is_active: true,
-          position: "middle_feed"
-        }
-      ]);
-      */
+      console.error("Failed to fetch ads, using dummy data:", err);
+      // Keep dummy data on error
+      setAds(DUMMY_ADS);
+      // We don't necessarily want to show an error if we have dummy data to show
+      // setError(err.message || "Failed to fetch ads");
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +179,7 @@ export function AdsManagement() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Ads Management</h1>
@@ -169,7 +190,28 @@ export function AdsManagement() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative min-h-[400px]">
+        {/* Coming Soon Overlay */}
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[2px] pointer-events-none">
+          <div className="bg-white/90 p-8 rounded-2xl shadow-2xl border border-indigo-100 flex flex-col items-center text-center max-w-sm mx-4 transform transition-all pointer-events-auto">
+            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+              <Megaphone className="text-indigo-600 animate-bounce" size={32} />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Coming Soon!</h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              We're building a powerful advertisement engine to help you reach more readers. This feature will be available shortly.
+            </p>
+            <div className="flex gap-2">
+              <div className="px-3 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-indigo-100">
+                In Development
+              </div>
+              <div className="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-100">
+                Q2 2026
+              </div>
+            </div>
+          </div>
+        </div>
+
         {error && (
           <div className="p-4 bg-red-50 text-red-700 border-b border-red-100 flex justify-between items-center">
             <span>{error}</span>
@@ -183,92 +225,89 @@ export function AdsManagement() {
             <p>Loading advertisements...</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Preview</TableHead>
-                <TableHead>Ad Details</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ads.length === 0 ? (
+          <div className="grayscale-[0.5] select-none pointer-events-none">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-10 text-gray-500">
-                    No advertisements found.
-                  </TableCell>
+                  <TableHead className="w-[100px]">Preview</TableHead>
+                  <TableHead>Ad Details</TableHead>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                ads.map((ad) => (
-                  <TableRow key={ad.id}>
-                    <TableCell>
-                      <div className="w-16 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center">
-                        {ad.image_url ? (
-                          <img src={ad.image_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <ImageIcon className="text-gray-400" size={20} />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-900">{ad.title}</span>
-                        <span className="text-xs text-gray-500 line-clamp-1">{ad.description}</span>
-                        <a 
-                          href={ad.link_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-indigo-600 hover:underline flex items-center mt-1"
-                        >
-                          {ad.link_url} <ExternalLink size={8} className="ml-1" />
-                        </a>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600 capitalize">
-                        {ad.position.replace("_", " ")}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch 
-                          checked={ad.is_active} 
-                          onCheckedChange={() => toggleAdStatus(ad)}
-                        />
-                        {ad.is_active ? (
-                          <span className="text-xs text-green-600 flex items-center"><CheckCircle2 size={12} className="mr-1" /> Active</span>
-                        ) : (
-                          <span className="text-xs text-gray-400 flex items-center"><XCircle size={12} className="mr-1" /> Inactive</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleOpenEditDialog(ad)}
-                        >
-                          <Pencil size={16} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteAd(ad.id)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {ads.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10 text-gray-500">
+                      No advertisements found.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  ads.map((ad) => (
+                    <TableRow key={ad.id}>
+                      <TableCell>
+                        <div className="w-16 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center">
+                          {ad.image_url ? (
+                            <img src={ad.image_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <ImageIcon className="text-gray-400" size={20} />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{ad.title}</span>
+                          <span className="text-xs text-gray-500 line-clamp-1">{ad.description}</span>
+                          <span className="text-[10px] text-indigo-600 flex items-center mt-1">
+                            {ad.link_url} <ExternalLink size={8} className="ml-1" />
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600 capitalize">
+                          {ad.position.replace("_", " ")}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch 
+                            checked={ad.is_active} 
+                            disabled
+                          />
+                          {ad.is_active ? (
+                            <span className="text-xs text-green-600 flex items-center"><CheckCircle2 size={12} className="mr-1" /> Active</span>
+                          ) : (
+                            <span className="text-xs text-gray-400 flex items-center"><XCircle size={12} className="mr-1" /> Inactive</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            disabled
+                          >
+                            <Pencil size={16} />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-red-600"
+                            disabled
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 
