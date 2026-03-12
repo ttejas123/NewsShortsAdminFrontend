@@ -291,3 +291,14 @@ export interface UpdateAdRequest {
   position?: string;
   is_active?: boolean;
 }
+export interface AdminNotification {
+  id: string;
+  type: "NEW_ARTICLES" | "RSS_ERROR" | "ADMIN_PUBLISHED" | "SYSTEM_HEALTH" | "NEW_REGISTRATION";
+  title: string;
+  message: string;
+  meta_data: any;
+  created_at: string;
+  updated_at: string;
+  is_read: boolean;
+  read_at: string | null;
+}

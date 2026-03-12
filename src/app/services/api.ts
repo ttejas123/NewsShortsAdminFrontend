@@ -20,6 +20,7 @@ import type {
   Ad,
   CreateAdRequest,
   UpdateAdRequest,
+  AdminNotification,
 } from "../types/api";
 
 const API_BASE_URL =
@@ -566,6 +567,23 @@ class APIClient {
   async deleteAd(id: string): Promise<void> {
     return this.request<void>(`/ads/${id}`, {
       method: "DELETE",
+    });
+  }
+
+  // Admin Notifications
+  async getAdminNotifications(): Promise<AdminNotification[]> {
+    return this.request<AdminNotification[]>("/admin-notifications");
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    return this.request<void>(`/admin-notifications/${id}/read`, {
+      method: "POST",
+    });
+  }
+
+  async markAllNotificationsAsRead(): Promise<void> {
+    return this.request<void>("/admin-notifications/read-all", {
+      method: "POST",
     });
   }
 }
