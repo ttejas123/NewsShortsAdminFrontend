@@ -255,8 +255,6 @@ export function NewArticleQueue() {
                 <option value="">All Languages</option>
                 <option value="en">English</option>
                 <option value="ar">Arabic</option>
-                <option value="hi">Hindi</option>
-                <option value="mr">Marathi</option>
               </select>
 
               <select

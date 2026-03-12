@@ -100,7 +100,6 @@ export function Settings() {
                 }`}
               >
                 <option>English</option>
-                <option>Hindi</option>
                 <option>Arabic</option>
               </select>
             </div>

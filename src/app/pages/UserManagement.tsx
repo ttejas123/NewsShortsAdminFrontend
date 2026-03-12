@@ -45,8 +45,10 @@ import {
 import { Label } from "../components/ui/label";
 import { getCurrentUser } from "../helper/getCurrentUser";
 import { useDebounce } from "../hook/useDebounce";
+import { useTheme } from "../context/ThemeContext";
 
 export function UserManagement() {
+  const { darkMode } = useTheme();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +72,16 @@ export function UserManagement() {
     password: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dark mode helpers
+  const dm = darkMode;
+  const textTitle = dm ? "text-gray-100" : "text-gray-900";
+  const textBody = dm ? "text-gray-300" : "text-gray-800";
+  const textMuted = dm ? "text-gray-400" : "text-gray-500";
+  const cardBg = dm ? "bg-gray-900 border-gray-700/80" : "bg-white border-gray-200";
+  const borderCol = dm ? "border-gray-800" : "border-gray-100";
+  const hoverBg = dm ? "hover:bg-gray-800/50" : "hover:bg-gray-50";
+  const inputBg = dm ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-900";
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -176,11 +188,11 @@ export function UserManagement() {
   const getRoleBadge = (role?: string) => {
     switch (role) {
       case "admin":
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-none"><ShieldCheck size={12} className="mr-1" /> Admin</Badge>;
+        return <Badge className={`border-none ${dm ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" : "bg-red-100 text-red-700 hover:bg-red-200"}`}><ShieldCheck size={12} className="mr-1" /> Admin</Badge>;
       case "manager":
-        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none"><Shield size={12} className="mr-1" /> Manager</Badge>;
+        return <Badge className={`border-none ${dm ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20" : "bg-blue-100 text-blue-700 hover:bg-blue-200"}`}><Shield size={12} className="mr-1" /> Manager</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-none"><UserIcon size={12} className="mr-1" /> Client</Badge>;
+        return <Badge className={`border-none ${dm ? "bg-gray-800 text-gray-400 hover:bg-gray-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}><UserIcon size={12} className="mr-1" /> Client</Badge>;
     }
   };
 
@@ -188,8 +200,8 @@ export function UserManagement() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-500">Manage user accounts and permissions.</p>
+          <h1 className={`text-2xl font-bold ${textTitle}`}>User Management</h1>
+          <p className={textMuted}>Manage user accounts and permissions.</p>
         </div>
         <Button 
           className="bg-indigo-600 hover:bg-indigo-700"
@@ -199,24 +211,24 @@ export function UserManagement() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="p-4 border-b border-gray-100 flex items-center gap-3">
+      <div className={`rounded-xl border shadow-sm ${cardBg}`}>
+        <div className={`p-4 border-b flex items-center gap-3 ${dm ? "border-gray-800" : "border-gray-100"}`}>
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <Input 
               placeholder="Search users by name or email..." 
-              className="pl-10"
+              className={`pl-10 ${dm ? "bg-gray-800 border-gray-700 text-gray-100 placeholder:text-gray-500" : ""}`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500 flex items-center gap-1">
+            <span className={`text-sm flex items-center gap-1 ${textMuted}`}>
               <Filter size={14} /> Filter:
             </span>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className={`w-[140px] h-9 ${dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}`}>
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
@@ -237,30 +249,30 @@ export function UserManagement() {
         )}
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+          <div className={`flex flex-col items-center justify-center py-20 ${textMuted}`}>
             <Loader2 className="animate-spin mb-2" size={32} />
             <p>Loading users...</p>
           </div>
         ) : (
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+            <TableHeader className={dm ? "bg-gray-800/50" : "bg-gray-50"}>
+              <TableRow className={dm ? "border-gray-800" : ""}>
+                <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>User</TableHead>
+                <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Email</TableHead>
+                <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Role</TableHead>
+                <TableHead className={`text-right ${dm ? "text-gray-300 hover:text-gray-100" : ""}`}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-10 text-gray-500">
+                <TableRow className={dm ? "border-gray-800" : ""}>
+                  <TableCell colSpan={4} className={`text-center py-10 ${textMuted}`}>
                     No users found.
                   </TableCell>
                 </TableRow>
               ) : (
                 users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className={dm ? "border-gray-800 hover:bg-gray-800/30" : ""}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-medium overflow-hidden">
@@ -270,11 +282,11 @@ export function UserManagement() {
                             user.display_name?.charAt(0) || user.email?.charAt(0)
                           )}
                         </div>
-                        <span className="font-medium text-gray-900">{user.display_name}</span>
-                        {user.sysuid && <Badge variant="outline" className="text-[10px] scale-90 opacity-50">API</Badge>}
+                        <span className={`font-medium ${textTitle}`}>{user.display_name}</span>
+                        {user.sysuid && <Badge variant="outline" className={`text-[10px] scale-90 opacity-50 ${dm ? "border-gray-700 text-gray-400" : ""}`}>API</Badge>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-600">{user.email}</TableCell>
+                    <TableCell className={textBody}>{user.email}</TableCell>
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center gap-2">
@@ -282,7 +294,7 @@ export function UserManagement() {
                           value={user.role} 
                           onValueChange={(val) => handleRoleChange(user.id!, val)}
                         >
-                          <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectTrigger className={`w-[120px] h-8 text-xs ${dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}`}>
                             <SelectValue placeholder="Change Role" />
                           </SelectTrigger>
                           <SelectContent>
@@ -324,7 +336,7 @@ export function UserManagement() {
                                     : []),
                                 ]
                         }} trigger={["click"]}>
-                          <button className="h-8 w-8 flex items-center justify-center hover:bg-gray-100 rounded">
+                          <button className={`h-8 w-8 flex items-center justify-center rounded transition-colors ${dm ? "text-gray-400 hover:bg-gray-800 hover:text-gray-200" : "hover:bg-gray-100"}`}>
                             <MoreOutlined />
                           </button>
                         </Dropdown>
@@ -337,8 +349,8 @@ export function UserManagement() {
           </Table>
         )}
 
-        <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
+        <div className={`p-4 border-t flex items-center justify-between ${dm ? "border-gray-800" : "border-gray-100"}`}>
+          <p className={`text-sm ${textMuted}`}>
             Showing {users.length} users
           </p>
           <div className="flex items-center gap-2">
@@ -347,15 +359,17 @@ export function UserManagement() {
               size="sm" 
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => prev - 1)}
+              className={dm ? "border-gray-700 hover:bg-gray-800 text-gray-300" : ""}
             >
               Previous
             </Button>
-            <span className="text-sm font-medium px-4">Page {currentPage} of {totalPages}</span>
+            <span className={`text-sm font-medium px-4 ${textBody}`}>Page {currentPage} of {totalPages}</span>
             <Button 
               variant="outline" 
               size="sm" 
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(prev => prev + 1)}
+              className={dm ? "border-gray-700 hover:bg-gray-800 text-gray-300" : ""}
             >
               Next
             </Button>
@@ -382,6 +396,7 @@ export function UserManagement() {
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   placeholder="John Doe"
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -393,6 +408,7 @@ export function UserManagement() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="john@example.com"
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -404,6 +420,7 @@ export function UserManagement() {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="••••••••"
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -412,7 +429,7 @@ export function UserManagement() {
                   value={formData.role} 
                   onValueChange={(val) => setFormData({ ...formData, role: val })}
                 >
-                  <SelectTrigger id="add-role">
+                  <SelectTrigger id="add-role" className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -455,6 +472,7 @@ export function UserManagement() {
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   placeholder="John Doe"
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -466,6 +484,7 @@ export function UserManagement() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="john@example.com"
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -476,6 +495,7 @@ export function UserManagement() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="••••••••"
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -484,7 +504,7 @@ export function UserManagement() {
                   value={formData.role} 
                   onValueChange={(val) => setFormData({ ...formData, role: val })}
                 >
-                  <SelectTrigger id="edit-role">
+                  <SelectTrigger id="edit-role" className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>

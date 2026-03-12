@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { useTheme } from "../context/ThemeContext";
 
 const DUMMY_ADS: Ad[] = [
   {
@@ -72,6 +73,7 @@ const DUMMY_ADS: Ad[] = [
 ];
 
 export function AdsManagement() {
+  const { darkMode } = useTheme();
   const [ads, setAds] = useState<Ad[]>(DUMMY_ADS);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,16 @@ export function AdsManagement() {
     position: "top_banner",
     is_active: true,
   });
+
+  // Dark mode helpers
+  const dm = darkMode;
+  const textTitle = dm ? "text-gray-100" : "text-gray-900";
+  const textBody = dm ? "text-gray-300" : "text-gray-800";
+  const textMuted = dm ? "text-gray-400" : "text-gray-500";
+  const cardBg = dm ? "bg-gray-900 border-gray-700/80" : "bg-white border-gray-200";
+  const borderCol = dm ? "border-gray-800" : "border-gray-100";
+  const hoverBg = dm ? "hover:bg-gray-800/50" : "hover:bg-gray-50";
+  const inputBg = dm ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-900";
 
   const fetchAds = async () => {
     setIsLoading(true);
@@ -182,30 +194,36 @@ export function AdsManagement() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ads Management</h1>
-          <p className="text-gray-500">Create and manage advertisement campaigns.</p>
+          <h1 className={`text-2xl font-bold ${textTitle}`}>Ads Management</h1>
+          <p className={textMuted}>Create and manage advertisement campaigns.</p>
         </div>
         <Button onClick={handleOpenAddDialog} className="bg-indigo-600 hover:bg-indigo-700">
           <Plus size={18} className="mr-2" /> Create Ad
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative min-h-[400px]">
+      <div className={`rounded-xl border shadow-sm overflow-hidden relative min-h-[400px] ${cardBg}`}>
         {/* Coming Soon Overlay */}
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[2px] pointer-events-none">
-          <div className="bg-white/90 p-8 rounded-2xl shadow-2xl border border-indigo-100 flex flex-col items-center text-center max-w-sm mx-4 transform transition-all pointer-events-auto">
-            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
-              <Megaphone className="text-indigo-600 animate-bounce" size={32} />
+        <div className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none backdrop-blur-[2px] ${dm ? "bg-black/40" : "bg-white/40"}`}>
+          <div className={`p-8 rounded-2xl shadow-2xl border flex flex-col items-center text-center max-w-sm mx-4 transform transition-all pointer-events-auto ${
+            dm ? "bg-gray-900/90 border-gray-700 text-gray-100" : "bg-white/90 border-indigo-100 text-gray-900"
+          }`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${dm ? "bg-indigo-500/20" : "bg-indigo-50"}`}>
+              <Megaphone className="text-indigo-400 animate-bounce" size={32} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Coming Soon!</h2>
-            <p className="text-gray-600 mb-6 text-sm">
+            <h2 className={`text-xl font-bold mb-2 ${textTitle}`}>Coming Soon!</h2>
+            <p className={`mb-6 text-sm ${textMuted}`}>
               We're building a powerful advertisement engine to help you reach more readers. This feature will be available shortly.
             </p>
             <div className="flex gap-2">
-              <div className="px-3 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-indigo-100">
+              <div className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
+                dm ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-700 border-indigo-100"
+              }`}>
                 In Development
               </div>
-              <div className="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-100">
+              <div className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
+                dm ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-amber-50 text-amber-700 border-amber-100"
+              }`}>
                 Q2 2026
               </div>
             </div>
@@ -213,41 +231,43 @@ export function AdsManagement() {
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 text-red-700 border-b border-red-100 flex justify-between items-center">
+          <div className={`p-4 border-b flex justify-between items-center ${
+            dm ? "bg-red-900/20 text-red-400 border-red-800/40" : "bg-red-50 text-red-700 border-red-100"
+          }`}>
             <span>{error}</span>
-            <Button variant="ghost" size="sm" onClick={fetchAds} className="text-red-700 hover:bg-red-100">Retry</Button>
+            <Button variant="ghost" size="sm" onClick={fetchAds} className={dm ? "text-red-400 hover:bg-red-900/40" : "text-red-700 hover:bg-red-100"}>Retry</Button>
           </div>
         )}
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+          <div className={`flex flex-col items-center justify-center py-20 ${textMuted}`}>
             <Loader2 className="animate-spin mb-2" size={32} />
             <p>Loading advertisements...</p>
           </div>
         ) : (
           <div className="grayscale-[0.5] select-none pointer-events-none">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Preview</TableHead>
-                  <TableHead>Ad Details</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+              <TableHeader className={dm ? "bg-gray-800/50" : "bg-gray-50"}>
+                <TableRow className={dm ? "border-gray-800" : ""}>
+                  <TableHead className={`w-[100px] ${dm ? "text-gray-300 hover:text-gray-100" : ""}`}>Preview</TableHead>
+                  <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Ad Details</TableHead>
+                  <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Position</TableHead>
+                  <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Status</TableHead>
+                  <TableHead className={`text-right ${dm ? "text-gray-300 hover:text-gray-100" : ""}`}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ads.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10 text-gray-500">
+                  <TableRow className={dm ? "border-gray-800" : ""}>
+                    <TableCell colSpan={5} className={`text-center py-10 ${textMuted}`}>
                       No advertisements found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   ads.map((ad) => (
-                    <TableRow key={ad.id}>
+                    <TableRow key={ad.id} className={dm ? "border-gray-800" : ""}>
                       <TableCell>
-                        <div className="w-16 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center">
+                        <div className={`w-16 h-12 rounded border overflow-hidden flex items-center justify-center ${dm ? "bg-gray-800 border-gray-700" : "bg-gray-100 border-gray-200"}`}>
                           {ad.image_url ? (
                             <img src={ad.image_url} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -257,15 +277,15 @@ export function AdsManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium text-gray-900">{ad.title}</span>
-                          <span className="text-xs text-gray-500 line-clamp-1">{ad.description}</span>
-                          <span className="text-[10px] text-indigo-600 flex items-center mt-1">
+                          <span className={`font-medium ${textTitle}`}>{ad.title}</span>
+                          <span className={`text-xs line-clamp-1 ${textMuted}`}>{ad.description}</span>
+                          <span className={`text-[10px] flex items-center mt-1 ${dm ? "text-indigo-400" : "text-indigo-600"}`}>
                             {ad.link_url} <ExternalLink size={8} className="ml-1" />
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600 capitalize">
+                        <span className={`text-xs font-mono px-2 py-1 rounded capitalize ${dm ? "bg-gray-800 text-gray-400" : "bg-gray-100 text-gray-600"}`}>
                           {ad.position.replace("_", " ")}
                         </span>
                       </TableCell>
@@ -276,9 +296,9 @@ export function AdsManagement() {
                             disabled
                           />
                           {ad.is_active ? (
-                            <span className="text-xs text-green-600 flex items-center"><CheckCircle2 size={12} className="mr-1" /> Active</span>
+                            <span className={`text-xs flex items-center ${dm ? "text-green-400" : "text-green-600"}`}><CheckCircle2 size={12} className="mr-1" /> Active</span>
                           ) : (
-                            <span className="text-xs text-gray-400 flex items-center"><XCircle size={12} className="mr-1" /> Inactive</span>
+                            <span className={`text-xs flex items-center ${textMuted}`}><XCircle size={12} className="mr-1" /> Inactive</span>
                           )}
                         </div>
                       </TableCell>
@@ -329,6 +349,7 @@ export function AdsManagement() {
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
                   placeholder="e.g. Summer Sale 2024" 
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -338,6 +359,7 @@ export function AdsManagement() {
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   placeholder="A brief description of the offer..." 
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -347,7 +369,7 @@ export function AdsManagement() {
                     value={formData.position} 
                     onValueChange={(val) => setFormData({...formData, position: val})}
                   >
-                    <SelectTrigger id="position">
+                    <SelectTrigger id="position" className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}>
                       <SelectValue placeholder="Select position" />
                     </SelectTrigger>
                     <SelectContent>
@@ -360,13 +382,13 @@ export function AdsManagement() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="is_active">Initial Status</Label>
-                  <div className="flex items-center h-10 gap-2 border rounded-md px-3 bg-gray-50/50">
+                  <div className={`flex items-center h-10 gap-2 border rounded-md px-3 ${dm ? "bg-gray-800/50 border-gray-700" : "bg-gray-50/50"}`}>
                     <Switch 
                       id="is_active" 
                       checked={formData.is_active}
                       onCheckedChange={(val) => setFormData({...formData, is_active: val})}
                     />
-                    <span className="text-sm text-gray-500">{formData.is_active ? "Active" : "Inactive"}</span>
+                    <span className={`text-sm ${textMuted}`}>{formData.is_active ? "Active" : "Inactive"}</span>
                   </div>
                 </div>
               </div>
@@ -379,6 +401,7 @@ export function AdsManagement() {
                   placeholder="https://..." 
                   type="url"
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
               <div className="grid gap-2">
@@ -390,6 +413,7 @@ export function AdsManagement() {
                   placeholder="https://..." 
                   type="url"
                   required
+                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
             </div>

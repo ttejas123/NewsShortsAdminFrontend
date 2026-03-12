@@ -26,6 +26,7 @@ import { useTheme } from "../context/ThemeContext";
 
 import { apiClient } from "../services/api";
 import { AdminNotification } from "../types/api";
+import { getCurrentUser } from "../helper/getCurrentUser";
 
 interface NavItem {
   label: string;
@@ -106,6 +107,7 @@ export function Layout() {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const navigate = useNavigate();
   const { darkMode } = useTheme();
+  const currentUser = getCurrentUser();
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -460,10 +462,16 @@ export function Layout() {
                 }`}
               >
                 <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center">
-                  <User size={14} className="text-indigo-600" />
+                  {
+                    currentUser?.profile_picture ? (
+                      <img src={currentUser.profile_picture} alt="" className="w-7 h-7 rounded-full" />
+                    ) : (
+                      <User size={14} className="text-indigo-600" />
+                    )
+                  }
                 </div>
                 <span className={`text-sm hidden sm:block ${dm ? "text-gray-200" : "text-gray-700"}`}>
-                  Admin
+                  {currentUser?.display_name}
                 </span>
                 <ChevronDown size={14} className={dm ? "text-gray-400" : "text-gray-400"} />
               </button>
