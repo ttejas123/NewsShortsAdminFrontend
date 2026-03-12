@@ -9,10 +9,13 @@ import {
   User as UserIcon,
   MoreVertical,
   Loader2,
-  Pencil
+  Pencil,
+  Filter
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import { User } from "../types/api";
+import { Dropdown } from "antd";
+import { MoreOutlined } from "@ant-design/icons";
 import {
   Table,
   TableBody,
@@ -32,12 +35,6 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -46,6 +43,8 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { Label } from "../components/ui/label";
+import { getCurrentUser } from "../helper/getCurrentUser";
+import { useDebounce } from "../hook/useDebounce";
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -59,6 +58,9 @@ export function UserManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const currentUser = getCurrentUser();
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -75,7 +77,8 @@ export function UserManagement() {
       const response = await apiClient.getUsers({
         page: currentPage,
         limit: 10,
-        search: searchTerm,
+        search: debouncedSearchTerm,
+        role: roleFilter === "all" ? undefined : roleFilter,
       });
       setUsers(response.items);
       setTotalPages(response.pagination.totalPages);
@@ -89,7 +92,7 @@ export function UserManagement() {
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, searchTerm]);
+  }, [currentPage, debouncedSearchTerm, roleFilter]);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
@@ -196,7 +199,7 @@ export function UserManagement() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="p-4 border-b border-gray-100 flex items-center gap-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -206,6 +209,23 @@ export function UserManagement() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 flex items-center gap-1">
+              <Filter size={14} /> Filter:
+            </span>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="client">Client</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -272,24 +292,42 @@ export function UserManagement() {
                           </SelectContent>
                         </Select>
 
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical size={16} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenEditModal(user)}>
-                              <Pencil size={14} className="mr-2" /> Edit User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-red-600 focus:text-red-700 focus:bg-red-50"
-                              onClick={() => handleDeleteUser(user.id!)}
-                            >
-                              <Trash2 size={14} className="mr-2" /> Delete User
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Dropdown menu={{ 
+                          items: [
+                                  {
+                                    key: "edit",
+                                    label: (
+                                      <div
+                                        className="flex items-center"
+                                        onClick={() => handleOpenEditModal(user)}
+                                      >
+                                        <Pencil size={14} className="mr-2" />
+                                        Edit User
+                                      </div>
+                                    ),
+                                  },
+                                  ...(currentUser?.role === "admin" && user.id != currentUser.id
+                                    ? [
+                                        {
+                                          key: "delete",
+                                          label: (
+                                            <div
+                                              className="flex items-center text-red-600"
+                                              onClick={() => handleDeleteUser(user.id!)}
+                                            >
+                                              <Trash2 size={14} className="mr-2" />
+                                              Delete User
+                                            </div>
+                                          ),
+                                        },
+                                      ]
+                                    : []),
+                                ]
+                        }} trigger={["click"]}>
+                          <button className="h-8 w-8 flex items-center justify-center hover:bg-gray-100 rounded">
+                            <MoreOutlined />
+                          </button>
+                        </Dropdown>
                       </div>
                     </TableCell>
                   </TableRow>

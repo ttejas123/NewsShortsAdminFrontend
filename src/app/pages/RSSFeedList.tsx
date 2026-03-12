@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import type { RSSSource, DashboardSummary } from "../types/api";
+import { useDebounce } from "../hook/useDebounce";
 
 export function RSSFeedList() {
   const navigate = useNavigate();
@@ -36,11 +37,12 @@ export function RSSFeedList() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 10;
+  const debouncedSearchTerm = useDebounce(search, 500);
 
   useEffect(() => {
     loadSources();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, selectedTags]);
+  }, [page, debouncedSearchTerm, selectedTags]);
 
   useEffect(() => {
     loadAnalytics();
@@ -66,7 +68,7 @@ export function RSSFeedList() {
       const response = await apiClient.getRSSSources({
         page,
         limit,
-        search: search || undefined,
+        search: debouncedSearchTerm || undefined,
       });
       setSources(response.items);
       setTotal(response.pagination.total);
