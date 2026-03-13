@@ -17,6 +17,7 @@ import {
   Plus,
   Users,
   Megaphone,
+  CreditCard,
   CheckCheck,
   Info,
   AlertTriangle,
@@ -80,6 +81,11 @@ const navItems: NavItem[] = [
     label: "Ads Management",
     icon: <Megaphone size={18} />,
     path: "/ads",
+  },
+  {
+    label: "Subscriptions",
+    icon: <CreditCard size={18} />,
+    path: "/subscriptions",
   },
 ];
 

@@ -18,6 +18,7 @@ import { Profile } from "./pages/Profile";
 import { Settings } from "./pages/Settings";
 import { UserManagement } from "./pages/UserManagement";
 import { AdsManagement } from "./pages/AdsManagement";
+import { SubscriptionManagement } from "./pages/SubscriptionManagement";
 import { OAuthCallback } from "./pages/OAuthCallback";
 
 export const router = createBrowserRouter([
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
       // Management
       { path: "users", Component: UserManagement },
       { path: "ads", Component: AdsManagement },
+      { path: "subscriptions", Component: SubscriptionManagement },
         ],
       },
     ],

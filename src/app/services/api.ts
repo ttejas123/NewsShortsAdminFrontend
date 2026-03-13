@@ -21,6 +21,9 @@ import type {
   CreateAdRequest,
   UpdateAdRequest,
   AdminNotification,
+  SubscriptionCheck,
+  SubscriptionGrantRequest,
+  SubscriptionRecord,
 } from "../types/api";
 
 const API_BASE_URL =
@@ -586,6 +589,23 @@ class APIClient {
       method: "POST",
     });
   }
+
+  // Subscription Management
+  async checkSubscription(userId: string): Promise<SubscriptionCheck> {
+    return this.request<SubscriptionCheck>(`/subscriptions/check/${userId}`);
+  }
+
+  async grantSubscription(data: SubscriptionGrantRequest): Promise<void> {
+    return this.request<void>("/subscriptions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getSubscriptionHistory(userId: string): Promise<SubscriptionRecord[]> {
+    return this.request<SubscriptionRecord[]>(`/subscriptions/history/${userId}`);
+  }
 }
+
 
 export const apiClient = new APIClient(API_BASE_URL);

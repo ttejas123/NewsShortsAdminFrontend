@@ -8,7 +8,10 @@ import {
   Image as ImageIcon,
   Loader2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Calendar,
+  Hash,
+  Layout as LayoutIcon
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import { Ad, CreateAdRequest, UpdateAdRequest } from "../types/api";
@@ -42,39 +45,9 @@ import {
 } from "../components/ui/select";
 import { useTheme } from "../context/ThemeContext";
 
-const DUMMY_ADS: Ad[] = [
-  {
-    id: "1",
-    title: "Premium News Subscription",
-    description: "Upgrade to premium for an ad-free experience and exclusive content.",
-    image_url: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop",
-    link_url: "https://example.com/premium",
-    position: "top_banner",
-    is_active: true,
-  },
-  {
-    id: "2",
-    title: "Global Tech Summit 2024",
-    description: "Join the leaders in technology this summer. Early bird tickets available now.",
-    image_url: "https://images.unsplash.com/photo-1540575861501-7ad058c48a33?q=80&w=2070&auto=format&fit=crop",
-    link_url: "https://example.com/summit",
-    position: "middle_feed",
-    is_active: false,
-  },
-  {
-    id: "3",
-    title: "Modern Minimalist Watch",
-    description: "Elegant design meets precision engineering. Shop the new collection.",
-    image_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1999&auto=format&fit=crop",
-    link_url: "https://example.com/watches",
-    position: "sidebar",
-    is_active: true,
-  }
-];
-
 export function AdsManagement() {
   const { darkMode } = useTheme();
-  const [ads, setAds] = useState<Ad[]>(DUMMY_ADS);
+  const [ads, setAds] = useState<Ad[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -85,12 +58,16 @@ export function AdsManagement() {
 
   // Form state
   const [formData, setFormData] = useState<CreateAdRequest>({
-    title: "",
-    description: "",
+    type: "GOOGLE",
+    name: "",
     image_url: "",
-    link_url: "",
-    position: "top_banner",
+    ad_id: "",
+    redirect_url: "",
+    format: "BANNER",
+    position_interval: 5,
     is_active: true,
+    start_date: "",
+    end_date: "",
   });
 
   // Dark mode helpers
@@ -109,12 +86,12 @@ export function AdsManagement() {
       const response = await apiClient.getAds();
       // Ensure response is an array
       const fetchedAds = Array.isArray(response) ? response : [];
-      setAds(fetchedAds.length > 0 ? fetchedAds : DUMMY_ADS);
+      setAds(fetchedAds.length > 0 ? fetchedAds : []);
       setError(null);
     } catch (err: any) {
       console.error("Failed to fetch ads, using dummy data:", err);
       // Keep dummy data on error
-      setAds(DUMMY_ADS);
+      setAds([]);
       // We don't necessarily want to show an error if we have dummy data to show
       // setError(err.message || "Failed to fetch ads");
     } finally {
@@ -129,12 +106,16 @@ export function AdsManagement() {
   const handleOpenAddDialog = () => {
     setCurrentAd(null);
     setFormData({
-      title: "",
-      description: "",
+      type: "GOOGLE",
+      name: "",
       image_url: "",
-      link_url: "",
-      position: "top_banner",
+      ad_id: "",
+      redirect_url: "",
+      format: "BANNER",
+      position_interval: 5,
       is_active: true,
+      start_date: "",
+      end_date: "",
     });
     setIsDialogOpen(true);
   };
@@ -142,12 +123,16 @@ export function AdsManagement() {
   const handleOpenEditDialog = (ad: Ad) => {
     setCurrentAd(ad);
     setFormData({
-      title: ad.title,
-      description: ad.description,
-      image_url: ad.image_url,
-      link_url: ad.link_url,
-      position: ad.position,
+      type: ad.type,
+      name: ad.name,
+      image_url: ad.image_url || "",
+      ad_id: ad.ad_id || "",
+      redirect_url: ad.redirect_url || "",
+      format: ad.format,
+      position_interval: ad.position_interval || 5,
       is_active: ad.is_active,
+      start_date: ad.start_date || "",
+      end_date: ad.end_date || "",
     });
     setIsDialogOpen(true);
   };
@@ -182,9 +167,11 @@ export function AdsManagement() {
   };
 
   const toggleAdStatus = async (ad: Ad) => {
+    if (ad.is_active && !window.confirm("Deactivate this advertisement?")) return;
+    if (!ad.is_active && !window.confirm("Activate this advertisement?")) return;
     try {
       const updated = await apiClient.updateAd(ad.id, { is_active: !ad.is_active });
-      setAds(ads.map(a => a.id === ad.id ? updated : a));
+      await fetchAds();
     } catch (err: any) {
       alert(err.message || "Failed to toggle status");
     }
@@ -203,32 +190,6 @@ export function AdsManagement() {
       </div>
 
       <div className={`rounded-xl border shadow-sm overflow-hidden relative min-h-[400px] ${cardBg}`}>
-        {/* Coming Soon Overlay */}
-        <div className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none backdrop-blur-[2px] ${dm ? "bg-black/40" : "bg-white/40"}`}>
-          <div className={`p-8 rounded-2xl shadow-2xl border flex flex-col items-center text-center max-w-sm mx-4 transform transition-all pointer-events-auto ${
-            dm ? "bg-gray-900/90 border-gray-700 text-gray-100" : "bg-white/90 border-indigo-100 text-gray-900"
-          }`}>
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${dm ? "bg-indigo-500/20" : "bg-indigo-50"}`}>
-              <Megaphone className="text-indigo-400 animate-bounce" size={32} />
-            </div>
-            <h2 className={`text-xl font-bold mb-2 ${textTitle}`}>Coming Soon!</h2>
-            <p className={`mb-6 text-sm ${textMuted}`}>
-              We're building a powerful advertisement engine to help you reach more readers. This feature will be available shortly.
-            </p>
-            <div className="flex gap-2">
-              <div className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
-                dm ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-700 border-indigo-100"
-              }`}>
-                In Development
-              </div>
-              <div className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
-                dm ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-amber-50 text-amber-700 border-amber-100"
-              }`}>
-                Q2 2026
-              </div>
-            </div>
-          </div>
-        </div>
 
         {error && (
           <div className={`p-4 border-b flex justify-between items-center ${
@@ -245,22 +206,24 @@ export function AdsManagement() {
             <p>Loading advertisements...</p>
           </div>
         ) : (
-          <div className="grayscale-[0.5] select-none pointer-events-none">
+          <div>
             <Table>
               <TableHeader className={dm ? "bg-gray-800/50" : "bg-gray-50"}>
                 <TableRow className={dm ? "border-gray-800" : ""}>
                   <TableHead className={`w-[100px] ${dm ? "text-gray-300 hover:text-gray-100" : ""}`}>Preview</TableHead>
-                  <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Ad Details</TableHead>
-                  <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Position</TableHead>
-                  <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Status</TableHead>
-                  <TableHead className={`text-right ${dm ? "text-gray-300 hover:text-gray-100" : ""}`}>Actions</TableHead>
+                   <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Campaign Name</TableHead>
+                   <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Type & Frequency</TableHead>
+                   <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Owner</TableHead>
+                   <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Position</TableHead>
+                   <TableHead className={dm ? "text-gray-300 hover:text-gray-100" : ""}>Status</TableHead>
+                  <TableHead className={`text-center ${dm ? "text-gray-300 hover:text-gray-100" : ""}`}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {ads.length === 0 ? (
-                  <TableRow className={dm ? "border-gray-800" : ""}>
-                    <TableCell colSpan={5} className={`text-center py-10 ${textMuted}`}>
-                      No advertisements found.
+                   <TableRow className={dm ? "border-gray-800" : ""}>
+                    <TableCell colSpan={8} className={`text-center py-36 ${textMuted}`}>
+                      No advertisement providers found.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -277,23 +240,48 @@ export function AdsManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className={`font-medium ${textTitle}`}>{ad.title}</span>
-                          <span className={`text-xs line-clamp-1 ${textMuted}`}>{ad.description}</span>
-                          <span className={`text-[10px] flex items-center mt-1 ${dm ? "text-indigo-400" : "text-indigo-600"}`}>
-                            {ad.link_url} <ExternalLink size={8} className="ml-1" />
+                          <div className={`font-semibold ${textTitle}`}>{ad.name.length > 20 ? ad.name.slice(0, 20) + "..." : ad.name}</div>
+                          <div className="flex flex-col">
+                            {ad.type === "AFFILIATE" ? (
+                              <span className={`text-[10px] flex items-center ${dm ? "text-indigo-400" : "text-indigo-600"}`}>
+                                {ad.redirect_url} <ExternalLink size={8} className="ml-1" />
+                              </span>
+                            ) : (
+                              <span className={`text-[10px] flex items-center ${dm ? "text-amber-400" : "text-amber-600"}`}>
+                                ID: {ad.ad_id}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${
+                            ad.type === "GOOGLE" 
+                              ? (dm ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-amber-50 text-amber-700 border border-amber-100")
+                              : (dm ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "bg-indigo-50 text-indigo-700 border border-indigo-100")
+                          }`}>
+                            {ad.type}
+                          </span>
+                          <span className={`text-[10px] font-medium flex items-center ${textMuted}`}>
+                            Frequency: 1 every {ad.position_interval} items
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
+                        <span className={`text-sm ${textMuted}`}>{ad.owner || "System"}</span>
+                      </TableCell>
+                      <TableCell>
                         <span className={`text-xs font-mono px-2 py-1 rounded capitalize ${dm ? "bg-gray-800 text-gray-400" : "bg-gray-100 text-gray-600"}`}>
-                          {ad.position.replace("_", " ")}
+                          {ad.format?.replace("_", " ") || "N/A"}
                         </span>
                       </TableCell>
+               
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Switch 
                             checked={ad.is_active} 
-                            disabled
+                            onCheckedChange={() => toggleAdStatus(ad)}
                           />
                           {ad.is_active ? (
                             <span className={`text-xs flex items-center ${dm ? "text-green-400" : "text-green-600"}`}><CheckCircle2 size={12} className="mr-1" /> Active</span>
@@ -308,7 +296,7 @@ export function AdsManagement() {
                             variant="ghost" 
                             size="sm" 
                             className="h-8 w-8 p-0"
-                            disabled
+                            onClick={() => handleOpenEditDialog(ad)}
                           >
                             <Pencil size={16} />
                           </Button>
@@ -316,7 +304,7 @@ export function AdsManagement() {
                             variant="ghost" 
                             size="sm" 
                             className="h-8 w-8 p-0 text-red-600"
-                            disabled
+                            onClick={() => handleDeleteAd(ad.id)}
                           >
                             <Trash2 size={16} />
                           </Button>
@@ -341,47 +329,128 @@ export function AdsManagement() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Ad Type</Label>
+                  <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: "GOOGLE" })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        formData.type === "GOOGLE"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-indigo-400"
+                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      <LayoutIcon size={14} /> Google
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: "AFFILIATE" })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        formData.type === "AFFILIATE"
+                          ? "bg-white dark:bg-gray-700 shadow-sm text-indigo-600 dark:text-indigo-400"
+                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      <ImageIcon size={14} /> Affiliate
+                    </button>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="format">Format</Label>
+                  <Select 
+                    value={formData.format} 
+                    onValueChange={(val) => setFormData({...formData, format: val as 'BANNER' | 'NATIVE'})}
+                  >
+                    <SelectTrigger id="format" className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BANNER">Banner</SelectItem>
+                      <SelectItem value="NATIVE">Native</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
+                <Label htmlFor="name">Campaign Name</Label>
                 <Input 
-                  id="title" 
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="e.g. Summer Sale 2024" 
+                  id="name" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="e.g. Summer Sale 2024 | 50% Discount | Alibaba" 
                   required
                   className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea 
-                  id="description" 
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="A brief description of the offer..." 
-                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
-                />
-              </div>
+
+              {formData.type === "GOOGLE" ? (
+                <div className="grid gap-2">
+                  <Label htmlFor="ad_id" className="flex items-center gap-2">
+                    <LayoutIcon size={14} className="text-amber-500" /> Google Ad Unit ID
+                  </Label>
+                  <Input 
+                    id="ad_id" 
+                    value={formData.ad_id}
+                    onChange={(e) => setFormData({...formData, ad_id: e.target.value})}
+                    placeholder="ca-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX" 
+                    required={formData.type === "GOOGLE"}
+                    className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="image_url" className="flex items-center gap-2">
+                      <ImageIcon size={14} className="text-indigo-500" /> Banner Image URL
+                    </Label>
+                    <Input 
+                      id="image_url" 
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({...formData, image_url: e.target.value})}
+                      placeholder="https://images.unsplash.com/..." 
+                      type="url"
+                      required={formData.type === "AFFILIATE"}
+                      className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="redirect_url" className="flex items-center gap-2">
+                      <ExternalLink size={14} className="text-indigo-500" /> Redirect Link
+                    </Label>
+                    <Input 
+                      id="redirect_url" 
+                      value={formData.redirect_url}
+                      onChange={(e) => setFormData({...formData, redirect_url: e.target.value})}
+                      placeholder="https://yourlink.com/promo" 
+                      type="url"
+                      required={formData.type === "AFFILIATE"}
+                      className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="position">Position</Label>
-                  <Select 
-                    value={formData.position} 
-                    onValueChange={(val) => setFormData({...formData, position: val})}
-                  >
-                    <SelectTrigger id="position" className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}>
-                      <SelectValue placeholder="Select position" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="top_banner">Top Banner</SelectItem>
-                      <SelectItem value="middle_feed">Middle Feed</SelectItem>
-                      <SelectItem value="sidebar">Sidebar</SelectItem>
-                      <SelectItem value="native_article">Native Article</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="position_interval" className="flex items-center gap-2">
+                    <Hash size={14} /> Display Frequency
+                  </Label>
+                  <Input 
+                    id="position_interval" 
+                    type="number"
+                    min={1}
+                    value={formData.position_interval}
+                    onChange={(e) => setFormData({...formData, position_interval: parseInt(e.target.value)})}
+                    placeholder="Show every X items" 
+                    required
+                    className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="is_active">Initial Status</Label>
+                  <Label htmlFor="is_active">Status</Label>
                   <div className={`flex items-center h-10 gap-2 border rounded-md px-3 ${dm ? "bg-gray-800/50 border-gray-700" : "bg-gray-50/50"}`}>
                     <Switch 
                       id="is_active" 
@@ -392,29 +461,32 @@ export function AdsManagement() {
                   </div>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input 
-                  id="image_url" 
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                  placeholder="https://..." 
-                  type="url"
-                  required
-                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="link_url">Destination Link</Label>
-                <Input 
-                  id="link_url" 
-                  value={formData.link_url}
-                  onChange={(e) => setFormData({...formData, link_url: e.target.value})}
-                  placeholder="https://..." 
-                  type="url"
-                  required
-                  className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="start_date" className="flex items-center gap-2">
+                    <Calendar size={14} /> Start Date
+                  </Label>
+                  <Input 
+                    id="start_date" 
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                    className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="end_date" className="flex items-center gap-2">
+                    <Calendar size={14} /> End Date
+                  </Label>
+                  <Input 
+                    id="end_date" 
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                    className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>

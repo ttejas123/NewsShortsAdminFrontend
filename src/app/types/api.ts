@@ -264,33 +264,68 @@ export interface ToggleActionRequest {
 
 export interface Ad {
   id: string;
-  title: string;
-  description: string;
-  image_url: string;
-  link_url: string;
+  type: "GOOGLE" | "AFFILIATE";
+  name: string;
+  image_url?: string;
+  ad_id?: string;
+  redirect_url?: string;
+  link_url?: string; // Kept for backward compatibility if needed, but preferred is redirect_url
   is_active: boolean;
-  position: string;
+  format: 'BANNER' | 'NATIVE';
+  position_interval?: number;
+  start_date?: string;
+  end_date?: string;
+  owner?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface CreateAdRequest {
-  title: string;
-  description: string;
-  image_url: string;
-  link_url: string;
-  position: string;
+  type: "GOOGLE" | "AFFILIATE";
+  name: string;
+  image_url?: string;
+  ad_id?: string;
+  redirect_url?: string;
+  format: 'BANNER' | 'NATIVE';
+  position_interval?: number;
   is_active?: boolean;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface UpdateAdRequest {
-  title?: string;
-  description?: string;
+  type?: "GOOGLE" | "AFFILIATE";
+  name?: string;
   image_url?: string;
-  link_url?: string;
-  position?: string;
+  ad_id?: string;
+  redirect_url?: string;
+  format?: 'BANNER' | 'NATIVE';
+  position_interval?: number;
   is_active?: boolean;
+  start_date?: string;
+  end_date?: string;
 }
+
+export interface SubscriptionCheck {
+  isPremium: boolean;
+}
+
+export interface SubscriptionGrantRequest {
+  user_id: string;
+  plan_type: "FREE" | "MONTHLY" | "ANNUAL";
+  end_date: string;
+}
+
+export interface SubscriptionRecord {
+  id: string;
+  user_id: string;
+  plan_type: string;
+  start_date: string;
+  end_date: string;
+  status: "active" | "expired" | "cancelled";
+  createdAt: string;
+}
+
 export interface AdminNotification {
   id: string;
   type: "NEW_ARTICLES" | "RSS_ERROR" | "ADMIN_PUBLISHED" | "SYSTEM_HEALTH" | "NEW_REGISTRATION";
