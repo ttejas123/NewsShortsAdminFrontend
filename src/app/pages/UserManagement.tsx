@@ -204,7 +204,7 @@ export function UserManagement() {
           <p className={textMuted}>Manage user accounts and permissions.</p>
         </div>
         <Button 
-          className="bg-indigo-600 hover:bg-indigo-700"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
           onClick={handleOpenAddModal}
         >
           <UserPlus size={18} className="mr-2" /> Add New User

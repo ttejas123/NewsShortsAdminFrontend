@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import type { Feed } from "../types/api";
+import { useTheme } from "../context/ThemeContext";
 
 export function ArticleEdit() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { darkMode } = useTheme();
   const isEdit = !!id;
 
   const [loading, setLoading] = useState(isEdit);
@@ -39,6 +41,16 @@ export function ArticleEdit() {
     region_name: "Universal",
     cover_image_url: "",
   });
+
+  // Dark mode helpers
+  const dm = darkMode;
+  const textTitle = dm ? "text-gray-100" : "text-gray-900";
+  const textBody = dm ? "text-gray-300" : "text-gray-700";
+  const textMuted = dm ? "text-gray-400" : "text-gray-500";
+  const cardBg = dm ? "bg-gray-900 border-gray-700/80" : "bg-white border-gray-200";
+  const borderCol = dm ? "border-gray-800" : "border-gray-100";
+  const inputBg = dm ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900";
+  const headerBg = dm ? "bg-gray-800/60 border-gray-700/50" : "bg-gray-100 border-gray-200";
 
   useEffect(() => {
     if (isEdit) {
@@ -212,49 +224,49 @@ export function ArticleEdit() {
         <div className="grid lg:grid-cols-3 gap-4">
           {/* Editor (2 columns) */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className={`rounded-xl border shadow-sm overflow-hidden ${cardBg}`}>
               {/* Title bar */}
-              <div className="bg-gray-100 border-b border-gray-200 px-5 py-2 flex items-center gap-2">
+              <div className={`${headerBg} border-b px-5 py-2 flex items-center gap-2`}>
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-400/80"></div>
                 </div>
-                <span className="text-xs text-gray-500 ml-2">Article Editor</span>
+                <span className={`text-xs ml-2 ${textMuted}`}>Article Editor</span>
               </div>
 
               <div className="p-6 space-y-6">
             {/* Basic Info */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="Enter article title"
                   required
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Subtitle
                 </label>
                 <input
                   type="text"
                   value={formData.subtitle}
                   onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="Enter subtitle (optional)"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Description
                 </label>
                 <textarea
@@ -263,31 +275,31 @@ export function ArticleEdit() {
                     setFormData({ ...formData, description: e.target.value })
                   }
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400 resize-none"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all resize-none ${inputBg}`}
                   placeholder="Enter article description"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Content (HTML)
                 </label>
                 <textarea
                   value={formData.html}
                   onChange={(e) => setFormData({ ...formData, html: e.target.value })}
                   rows={8}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400 font-mono resize-none"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all font-mono resize-none ${inputBg}`}
                   placeholder="Enter article HTML content"
                 />
               </div>
             </div>
 
-            <hr className="border-gray-200" />
+            <hr className={`border-t ${dm ? "border-gray-800" : "border-gray-100"}`} />
 
             {/* Metadata */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Provider Name
                 </label>
                 <input
@@ -296,13 +308,13 @@ export function ArticleEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, provider_name: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="e.g., BBC News"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Author Name
                 </label>
                 <input
@@ -311,13 +323,13 @@ export function ArticleEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, author_name: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="e.g., John Doe"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Category
                 </label>
                 <input
@@ -326,13 +338,13 @@ export function ArticleEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, category_name: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="e.g., Technology"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Language
                 </label>
                 <select
@@ -350,7 +362,7 @@ export function ArticleEdit() {
                   
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Engagement Score
                 </label>
                 <input
@@ -363,25 +375,25 @@ export function ArticleEdit() {
                       engagement_score: Number.parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Slug
                 </label>
                 <input
                   type="text"
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="article-slug"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Published At
                 </label>
                 <input
@@ -390,25 +402,25 @@ export function ArticleEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, published_at: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Web URL
                 </label>
                 <input
                   type="url"
                   value={formData.web_url}
                   onChange={(e) => setFormData({ ...formData, web_url: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="https://example.com/article"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${textBody}`}>
                   Cover Image URL
                 </label>
                 <input
@@ -417,7 +429,7 @@ export function ArticleEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, cover_image_url: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`}
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
@@ -430,9 +442,9 @@ export function ArticleEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, is_featured: e.target.checked })
                   }
-                  className="accent-indigo-600 w-4 h-4"
+                  className="accent-indigo-600 w-4 h-4 rounded cursor-pointer"
                 />
-                <label htmlFor="featured" className="text-sm text-gray-700">
+                <label htmlFor="featured" className={`text-sm cursor-pointer ${textBody}`}>
                   Featured Article
                 </label>
               </div>
@@ -440,12 +452,14 @@ export function ArticleEdit() {
           </div>
 
           {/* Footer Actions */}
-          <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className={`${headerBg} border-t px-6 py-4 flex items-center justify-between`}>
                 {isEdit ? (
                   <button
                     type="button"
                     onClick={handleDelete}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                    className={`flex items-center gap-2 px-4 py-2 text-sm border rounded-lg transition-colors ${
+                      dm ? "text-red-400 border-red-800/50 hover:bg-red-900/20" : "text-red-600 border-red-300 hover:bg-red-50"
+                    }`}
                   >
                     <Trash2 size={16} />
                     Delete
@@ -458,7 +472,9 @@ export function ArticleEdit() {
                   <button
                     type="button"
                     onClick={() => navigate("/articles/queue")}
-                    className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                    className={`px-4 py-2 text-sm border rounded-lg transition-colors ${
+                      dm ? "text-gray-300 border-gray-700 hover:bg-gray-800" : "text-gray-700 border-gray-300 hover:bg-gray-100"
+                    }`}
                   >
                     Cancel
                   </button>
@@ -486,15 +502,15 @@ export function ArticleEdit() {
 
           {/* Mobile Preview (1 column) */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden sticky top-6">
+            <div className={`rounded-xl border shadow-sm overflow-hidden sticky top-6 ${cardBg}`}>
               {/* Title bar */}
-              <div className="bg-gray-100 border-b border-gray-200 px-5 py-2 flex items-center gap-2">
+              <div className={`${headerBg} border-b px-5 py-2 flex items-center gap-2`}>
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-400/80"></div>
                 </div>
-                <span className="text-xs text-gray-500 ml-2">
+                <span className={`text-xs ml-2 ${textMuted}`}>
                   <Eye size={12} className="inline mr-1" />
                   Mobile Preview
                 </span>
@@ -502,11 +518,11 @@ export function ArticleEdit() {
 
               <div className="p-6 flex justify-center">
                 <div
-                  className="relative bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl"
+                  className={`relative rounded-[2.5rem] p-3 shadow-2xl transition-colors duration-300 ${dm ? "bg-gray-800" : "bg-gray-900"}`}
                   style={{ width: 280 }}
                 >
                   {/* Status bar */}
-                  <div className="bg-gray-800 rounded-t-[2rem] px-5 py-1.5 flex items-center justify-between">
+                  <div className={`${dm ? "bg-gray-700" : "bg-gray-800"} rounded-t-[2rem] px-5 py-1.5 flex items-center justify-between`}>
                     <span className="text-white text-[10px]">3:49 PM</span>
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-1.5 bg-white rounded-sm opacity-60"></div>
@@ -517,7 +533,7 @@ export function ArticleEdit() {
 
                   {/* Screen */}
                   <div
-                    className="bg-white rounded-b-[2rem] overflow-hidden"
+                    className={`${dm ? "bg-gray-900" : "bg-white"} rounded-b-[2rem] overflow-hidden`}
                     style={{ minHeight: 500 }}
                   >
                     {formData.cover_image_url && (
@@ -528,16 +544,16 @@ export function ArticleEdit() {
                       />
                     )}
                     <div className="p-4">
-                      <h3 className="text-gray-900 text-sm font-semibold mb-2 line-clamp-2">
+                      <h3 className={`${textTitle} text-sm font-semibold mb-2 line-clamp-2`}>
                         {formData.title || "Article Title"}
                       </h3>
                       {formData.subtitle && (
-                        <p className="text-xs text-gray-500 mb-2">{formData.subtitle}</p>
+                        <p className={`text-xs mb-2 ${textMuted}`}>{formData.subtitle}</p>
                       )}
-                      <p className="text-xs text-gray-600 leading-relaxed line-clamp-6">
+                      <p className={`text-xs leading-relaxed line-clamp-6 ${textBody}`}>
                         {formData.description || "Article description"}
                       </p>
-                      <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                      <div className={`mt-4 flex items-center justify-between text-xs ${textMuted}`}>
                         <span>{formData.layout}</span>
                         <span>⭐ {formData.engagement_score?.toFixed(1) || 0}</span>
                       </div>
@@ -546,7 +562,7 @@ export function ArticleEdit() {
 
                   {/* Home button */}
                   <div className="flex justify-center py-2">
-                    <div className="w-8 h-8 rounded-full border-2 border-gray-600"></div>
+                    <div className={`w-8 h-8 rounded-full border-2 ${dm ? "border-gray-600" : "border-gray-700"}`}></div>
                   </div>
                 </div>
               </div>

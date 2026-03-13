@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from "react-router";
 import { CheckCircle, X, Loader2 } from "lucide-react";
 import { apiClient } from "../services/api";
 import type { CreateRSSSourceRequest } from "../types/api";
+import { useTheme } from "../context/ThemeContext";
 
 export function RSSFeedSetup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { darkMode } = useTheme();
   const editId = searchParams.get("id");
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,6 +21,15 @@ export function RSSFeedSetup() {
     fetch_interval_minutes: "30",
     is_active: true,
   });
+
+  // Dark mode helpers
+  const dm = darkMode;
+  const textTitle = dm ? "text-gray-100" : "text-gray-900";
+  const textBody = dm ? "text-gray-300" : "text-gray-700";
+  const textMuted = dm ? "text-gray-400" : "text-gray-500";
+  const cardBg = dm ? "bg-gray-900 border-gray-700/80" : "bg-white border-gray-200";
+  const headerBg = dm ? "bg-gray-800/60 border-gray-700/50" : "bg-gray-100 border-gray-200";
+  const inputBg = dm ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900";
 
   useEffect(() => {
     if (editId) {
@@ -86,25 +97,24 @@ export function RSSFeedSetup() {
     }
   };
 
-  const inputClass =
-    "border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200 bg-white disabled:bg-gray-50 disabled:cursor-not-allowed";
-  const labelClass = "text-sm font-bold text-gray-800 whitespace-nowrap";
+  const inputClass = `border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all ${inputBg}`;
+  const labelClass = `text-sm font-bold whitespace-nowrap ${textTitle}`;
 
   if (loadingSource) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
+      <div className={`p-6 max-w-4xl mx-auto min-h-screen ${dm ? "bg-gray-950" : ""}`}>
+        <div className={`rounded-xl border shadow-sm p-12 text-center ${cardBg}`}>
           <Loader2 size={32} className="animate-spin text-indigo-600 mx-auto" />
-          <p className="text-gray-500 mt-4">Loading source...</p>
+          <p className={`mt-4 ${textMuted}`}>Loading source...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className={`p-6 max-w-4xl mx-auto min-h-screen transition-colors duration-200 ${dm ? "bg-gray-950" : ""}`}>
       {/* Breadcrumb */}
-      <div className="text-xs text-gray-400 mb-1">
+      <div className={`text-xs mb-1 ${textMuted}`}>
         Admin → RSS Feeds → {editId ? "Edit" : "Setup New"} RSS Feed
       </div>
 
@@ -121,21 +131,21 @@ export function RSSFeedSetup() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className={`rounded-xl border shadow-sm overflow-hidden ${cardBg}`}>
         {/* Mac-style Title bar */}
-        <div className="bg-gray-100 border-b border-gray-200 px-5 py-2 flex items-center gap-2">
+        <div className={`${headerBg} border-b px-5 py-2 flex items-center gap-2`}>
           <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-400"></div>
-            <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-            <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+            <div className="w-3 h-3 rounded-full bg-red-400/80"></div>
+            <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
+            <div className="w-3 h-3 rounded-full bg-emerald-400/80"></div>
           </div>
-          <span className="text-xs text-gray-500 ml-2">
+          <span className={`text-xs ml-2 ${textMuted}`}>
             Admin - RSS Feeds ({editId ? "Edit" : "Setup New"} RSS Feed)
           </span>
         </div>
 
         <div className="p-8">
-          <h1 className="text-gray-900 mb-6" style={{ fontStyle: "italic" }}>
+          <h1 className={`${textTitle} mb-6`} style={{ fontStyle: "italic" }}>
             {editId ? "Edit RSS Feed" : "Setup new RSS feed"}
           </h1>
 
@@ -171,7 +181,7 @@ export function RSSFeedSetup() {
               />
             </div>
 
-            <hr className="border-gray-200 my-6" />
+            <hr className={`my-6 ${dm ? "border-gray-800" : "border-gray-100"}`} />
 
             {/* Language */}
             <div className="flex items-center gap-4">
@@ -214,7 +224,7 @@ export function RSSFeedSetup() {
               </select>
             </div>
 
-            <hr className="border-gray-200 my-6" />
+            <hr className={`my-6 ${dm ? "border-gray-800" : "border-gray-100"}`} />
 
             {/* Active Status */}
             <div className="flex items-center gap-4">
@@ -226,10 +236,10 @@ export function RSSFeedSetup() {
                   type="checkbox"
                   checked={form.is_active}
                   onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                  className="w-4 h-4 accent-indigo-600"
+                  className="w-4 h-4 accent-indigo-600 rounded"
                   disabled={loading}
                 />
-                <span className="text-sm text-gray-700">
+                <span className={`text-sm ${textBody}`}>
                   Active (Enable automatic fetching)
                 </span>
               </label>
@@ -237,10 +247,12 @@ export function RSSFeedSetup() {
           </div>
 
           {/* Footer Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className={`flex justify-end gap-3 pt-4 border-t ${dm ? "border-gray-800" : "border-gray-200"}`}>
             <button
               onClick={() => navigate("/rss/list")}
-              className="px-5 py-2 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+              className={`px-5 py-2 text-sm border rounded-lg transition-colors ${
+                dm ? "border-gray-700 text-gray-300 hover:bg-gray-800" : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
               disabled={loading}
             >
               Cancel

@@ -197,7 +197,7 @@ export function AdsManagement() {
           <h1 className={`text-2xl font-bold ${textTitle}`}>Ads Management</h1>
           <p className={textMuted}>Create and manage advertisement campaigns.</p>
         </div>
-        <Button onClick={handleOpenAddDialog} className="bg-indigo-600 hover:bg-indigo-700">
+        <Button onClick={handleOpenAddDialog} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors">
           <Plus size={18} className="mr-2" /> Create Ad
         </Button>
       </div>
