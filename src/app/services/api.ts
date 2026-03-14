@@ -603,7 +603,7 @@ class APIClient {
   }
 
   async getSubscriptionHistory(userId: string): Promise<SubscriptionRecord[]> {
-    return this.request<SubscriptionRecord[]>(`/subscriptions/history/${userId}`);
+    return this.request<SubscriptionRecord[]>(`/subscriptions/user/${userId}`);
   }
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { 
   Users, 
   Search, 
@@ -10,7 +11,8 @@ import {
   MoreVertical,
   Loader2,
   Pencil,
-  Filter
+  Filter,
+  CreditCard
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import { User } from "../types/api";
@@ -49,6 +51,7 @@ import { useTheme } from "../context/ThemeContext";
 
 export function UserManagement() {
   const { darkMode } = useTheme();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -315,6 +318,18 @@ export function UserManagement() {
                                       >
                                         <Pencil size={14} className="mr-2" />
                                         Edit User
+                                      </div>
+                                    ),
+                                  },
+                                  {
+                                    key: "subscription",
+                                    label: (
+                                      <div
+                                        className="flex items-center"
+                                        onClick={() => navigate(`/subscriptions/${user.id}`)}
+                                      >
+                                        <CreditCard size={14} className="mr-2" />
+                                        Manage Subscription
                                       </div>
                                     ),
                                   },

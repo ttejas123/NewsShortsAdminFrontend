@@ -25,7 +25,6 @@ import {
 } from "../components/ui/table";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
 import { Switch } from "../components/ui/switch";
 import {
   Dialog,
@@ -142,11 +141,11 @@ export function AdsManagement() {
     setIsSubmitting(true);
     try {
       if (currentAd) {
-        const updated = await apiClient.updateAd(currentAd.id, formData);
-        setAds(ads.map(a => a.id === currentAd.id ? updated : a));
+        await apiClient.updateAd(currentAd.id, formData);
+        await fetchAds();
       } else {
-        const created = await apiClient.createAd(formData);
-        setAds([...ads, created]);
+        await apiClient.createAd(formData);
+        await fetchAds();
       }
       setIsDialogOpen(false);
     } catch (err: any) {
@@ -240,7 +239,7 @@ export function AdsManagement() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <div className={`font-semibold ${textTitle}`}>{ad.name.length > 20 ? ad.name.slice(0, 20) + "..." : ad.name}</div>
+                          <div className={`font-semibold ${textTitle}`}>{ad.name?.length > 20 ? ad.name.slice(0, 20) + "..." : ad.name}</div>
                           <div className="flex flex-col">
                             {ad.type === "AFFILIATE" ? (
                               <span className={`text-[10px] flex items-center ${dm ? "text-indigo-400" : "text-indigo-600"}`}>
@@ -470,7 +469,7 @@ export function AdsManagement() {
                   <Input 
                     id="start_date" 
                     type="date"
-                    value={formData.start_date}
+                    value={formData.start_date?.split("T")[0]}
                     onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                     className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                   />
@@ -482,7 +481,7 @@ export function AdsManagement() {
                   <Input 
                     id="end_date" 
                     type="date"
-                    value={formData.end_date}
+                    value={formData.end_date?.split("T")[0]}
                     onChange={(e) => setFormData({...formData, end_date: e.target.value})}
                     className={dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}
                   />

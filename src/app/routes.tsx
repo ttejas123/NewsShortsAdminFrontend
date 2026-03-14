@@ -66,6 +66,7 @@ export const router = createBrowserRouter([
       { path: "users", Component: UserManagement },
       { path: "ads", Component: AdsManagement },
       { path: "subscriptions", Component: SubscriptionManagement },
+      { path: "subscriptions/:userId", Component: SubscriptionManagement },
         ],
       },
     ],
