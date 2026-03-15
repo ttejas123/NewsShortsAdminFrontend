@@ -271,7 +271,7 @@ export interface Ad {
   redirect_url?: string;
   link_url?: string; // Kept for backward compatibility if needed, but preferred is redirect_url
   is_active: boolean;
-  format: 'BANNER' | 'NATIVE';
+  format: 'BANNER' | 'NATIVE' | 'AFFILIATE';
   position_interval?: number;
   start_date?: string;
   end_date?: string;
@@ -286,7 +286,7 @@ export interface CreateAdRequest {
   image_url?: string;
   ad_id?: string;
   redirect_url?: string;
-  format: 'BANNER' | 'NATIVE';
+  format: 'BANNER' | 'NATIVE' | 'AFFILIATE';
   position_interval?: number;
   is_active?: boolean;
   start_date?: string;
@@ -299,7 +299,7 @@ export interface UpdateAdRequest {
   image_url?: string;
   ad_id?: string;
   redirect_url?: string;
-  format?: 'BANNER' | 'NATIVE';
+  format?: 'BANNER' | 'NATIVE' | 'AFFILIATE';
   position_interval?: number;
   is_active?: boolean;
   start_date?: string;
@@ -312,7 +312,7 @@ export interface SubscriptionCheck {
 
 export interface SubscriptionGrantRequest {
   user_id: string;
-  plan_type: "FREE" | "MONTHLY" | "ANNUAL";
+  plan_type: "FREE" | "BASIC" | "ADVANCE" | "PRO";
   end_date: string;
 }
 
@@ -322,8 +322,13 @@ export interface SubscriptionRecord {
   plan_type: string;
   start_date: string;
   end_date: string;
-  status: "active" | "expired" | "cancelled";
-  createdAt: string;
+  is_active?: boolean;
+  status?: "active" | "expired" | "cancelled";
+  perks?: string[];
+  defaultPerks?: string[];
+  createdAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AdminNotification {

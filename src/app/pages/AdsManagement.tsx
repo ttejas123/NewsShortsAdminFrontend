@@ -242,9 +242,9 @@ export function AdsManagement() {
                           <div className={`font-semibold ${textTitle}`}>{ad.name?.length > 20 ? ad.name.slice(0, 20) + "..." : ad.name}</div>
                           <div className="flex flex-col">
                             {ad.type === "AFFILIATE" ? (
-                              <span className={`text-[10px] flex items-center ${dm ? "text-indigo-400" : "text-indigo-600"}`}>
-                                {ad.redirect_url} <ExternalLink size={8} className="ml-1" />
-                              </span>
+                              <a href={ad.redirect_url} target="_blank" rel="noopener noreferrer" className={`text-[10px] flex items-center ${dm ? "text-indigo-400" : "text-indigo-600"}`}>
+                                {(ad.redirect_url || "")?.length > 30 ? (ad.redirect_url || "").slice(0, 30) + "..." : (ad.redirect_url || "")} <ExternalLink size={8} className="ml-1" />
+                              </a>
                             ) : (
                               <span className={`text-[10px] flex items-center ${dm ? "text-amber-400" : "text-amber-600"}`}>
                                 ID: {ad.ad_id}
@@ -368,6 +368,7 @@ export function AdsManagement() {
                     <SelectContent>
                       <SelectItem value="BANNER">Banner</SelectItem>
                       <SelectItem value="NATIVE">Native</SelectItem>
+                      <SelectItem value="AFFILIATE">Affiliate</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

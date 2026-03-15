@@ -42,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useTheme } from "../context/ThemeContext";
 import { useDebounce } from "../hook/useDebounce";
 
@@ -57,6 +58,7 @@ export function SubscriptionManagement() {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [roleFilter, setRoleFilter] = useState("all");
 
   // User detail state
   const [userId, setUserId] = useState(urlUserId || "");
@@ -64,6 +66,8 @@ export function SubscriptionManagement() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<SubscriptionCheck | null>(null);
   const [history, setHistory] = useState<SubscriptionRecord[]>([]);
+  const [historyStatusFilter, setHistoryStatusFilter] = useState("ALL");
+  const [historyPlanFilter, setHistoryPlanFilter] = useState("ALL");
 
   // Grant form state
   const [grantData, setGrantData] = useState<Omit<SubscriptionGrantRequest, "user_id">>({
@@ -87,6 +91,7 @@ export function SubscriptionManagement() {
         page: currentPage,
         limit: 10,
         search: debouncedSearchTerm,
+        role: roleFilter === "all" ? undefined : roleFilter,
       });
       setUsers(response.items);
       setTotalPages(response.pagination.totalPages);
@@ -95,7 +100,7 @@ export function SubscriptionManagement() {
     } finally {
       setIsUsersLoading(false);
     }
-  }, [currentPage, debouncedSearchTerm]);
+  }, [currentPage, debouncedSearchTerm, roleFilter]);
 
   useEffect(() => {
     if (!urlUserId) {
@@ -109,6 +114,8 @@ export function SubscriptionManagement() {
     setError(null);
     setStatus(null);
     setHistory([]);
+    setHistoryStatusFilter("ALL");
+    setHistoryPlanFilter("ALL");
 
     try {
       const [statusRes, historyRes] = await Promise.all([
@@ -165,6 +172,14 @@ export function SubscriptionManagement() {
       setIsGranting(false);
     }
   };
+
+  const filteredHistory = history.filter(record => {
+    const isActive = record.is_active !== undefined ? record.is_active : record.status === 'active';
+    if (historyStatusFilter === "ACTIVE" && !isActive) return false;
+    if (historyStatusFilter === "EXPIRED" && isActive) return false;
+    if (historyPlanFilter !== "ALL" && record.plan_type !== historyPlanFilter) return false;
+    return true;
+  });
 
   if (urlUserId) {
     return (
@@ -259,8 +274,9 @@ export function SubscriptionManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="FREE">FREE</SelectItem>
-                      <SelectItem value="MONTHLY">MONTHLY</SelectItem>
-                      <SelectItem value="ANNUAL">ANNUAL</SelectItem>
+                      <SelectItem value="BASIC">BASIC</SelectItem>
+                      <SelectItem value="ADVANCE">ADVANCE</SelectItem>
+                      <SelectItem value="PRO">PRO</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -289,61 +305,215 @@ export function SubscriptionManagement() {
 
             {/* Subscription History */}
             <div className={`p-6 rounded-xl border shadow-sm md:col-span-2 ${cardBg}`}>
-              <h3 className={`font-semibold mb-6 flex items-center gap-2 ${textTitle}`}>
-                <History size={18} className="text-indigo-500" /> Subscription History
-              </h3>
-
-              {history.length === 0 ? (
-                <div className="text-center py-10">
-                  <Clock className={`mx-auto mb-2 opacity-20 ${textMuted}`} size={48} />
-                  <p className={textMuted}>No past subscription records found.</p>
-                </div>
-              ) : (
-                <div className="relative space-y-6">
-                  {/* Vertical Line */}
-                  <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gray-200 dark:bg-gray-800" />
+              <Tabs defaultValue="list" className="w-full">
+                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+                  <h3 className={`font-semibold flex items-center gap-2 ${textTitle}`}>
+                    <History size={18} className="text-indigo-500" /> Subscription History
+                  </h3>
                   
-                  {history.map((record, index) => (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={historyStatusFilter} onValueChange={setHistoryStatusFilter}>
+                      <SelectTrigger className={`w-[130px] h-9 ${inputBg}`}>
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Status</SelectItem>
+                        <SelectItem value="ACTIVE">Active</SelectItem>
+                        <SelectItem value="EXPIRED">Expired</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={historyPlanFilter} onValueChange={setHistoryPlanFilter}>
+                      <SelectTrigger className={`w-[130px] h-9 ${inputBg}`}>
+                        <SelectValue placeholder="Plan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Plans</SelectItem>
+                        {Array.from(new Set(history.map(h => h.plan_type))).map(pt => (
+                          <SelectItem key={pt} value={pt}>{pt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <TabsList>
+                      <TabsTrigger value="list">List View</TabsTrigger>
+                      <TabsTrigger value="timeline">Graph</TabsTrigger>
+                    </TabsList>
+                  </div>
+                </div>
+
+                <TabsContent value="list" className="mt-0">
+                  {filteredHistory.length === 0 ? (
+                    <div className="text-center py-10">
+                      <Clock className={`mx-auto mb-2 opacity-20 ${textMuted}`} size={48} />
+                      <p className={textMuted}>No past subscription records found matching filters.</p>
+                    </div>
+                  ) : (
+                    <div className="relative space-y-6">
+                      {/* Vertical Line */}
+                      <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gray-200 dark:bg-gray-800" />
+                      
+                      {filteredHistory.map((record, index) => {
+                    const isActive = record.is_active !== undefined ? record.is_active : record.status === 'active';
+                    
+                    return (
                     <div key={record.id} className="relative pl-8">
                       {/* Dot */}
                       <div className={`absolute left-0 top-1.5 w-6 h-6 rounded-full border-4 flex items-center justify-center ${
-                        record.status === 'active' 
+                        isActive 
                           ? (dm ? "bg-green-500 border-gray-900" : "bg-green-500 border-white") 
                           : (dm ? "bg-gray-700 border-gray-900" : "bg-gray-300 border-white")
                       }`} />
                       
-                      <div className={`p-4 rounded-lg border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                      <div className={`p-4 rounded-lg border flex flex-col gap-4 ${
                         dm ? "bg-gray-800/30 border-gray-700" : "bg-gray-50 border-gray-100"
                       }`}>
-                        <div className="flex items-center gap-4">
-                          <div className={`p-2 rounded-md ${dm ? "bg-indigo-500/10" : "bg-indigo-50"}`}>
-                            <CreditCard className="text-indigo-500" size={20} />
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-md ${dm ? "bg-indigo-500/10" : "bg-indigo-50"}`}>
+                              <CreditCard className="text-indigo-500" size={20} />
+                            </div>
+                            <div>
+                              <p className={`text-sm font-bold ${textTitle}`}>{record.plan_type} Plan</p>
+                              <p className={`text-xs ${textMuted}`}>Started: {new Date(record.start_date).toLocaleDateString()}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className={`text-sm font-bold ${textTitle}`}>{record.plan_type} Plan</p>
-                            <p className={`text-xs ${textMuted}`}>Started: {new Date(record.start_date).toLocaleDateString()}</p>
+
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className={`text-[10px] uppercase font-bold tracking-wider ${textMuted}`}>Expires</p>
+                              <p className={`text-sm font-medium ${textTitle}`}>{new Date(record.end_date).toLocaleDateString()}</p>
+                            </div>
+                            <ArrowRight className={textMuted} size={14} />
+                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                              isActive 
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" 
+                                : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                            }`}>
+                              {isActive ? "Active" : record.status || "Expired"}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className={`text-[10px] uppercase font-bold tracking-wider ${textMuted}`}>Expires</p>
-                            <p className={`text-sm font-medium ${textTitle}`}>{new Date(record.end_date).toLocaleDateString()}</p>
+                        {record.perks && record.perks.length > 0 && (
+                          <div className="mt-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <p className={`text-xs font-semibold mb-2 uppercase tracking-wide ${textMuted}`}>Plan Perks</p>
+                            <div className="flex flex-wrap gap-2">
+                              {record.perks.map((perk, idx) => (
+                                <Badge key={idx} variant="secondary" className={`${dm ? "bg-gray-700 text-gray-200 hover:bg-gray-600" : "bg-gray-200 text-gray-800 hover:bg-gray-300"} font-normal text-[11px] flex items-center gap-1`}>
+                                  <CheckCircle2 size={10} className="text-green-500" />
+                                  {perk}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
-                          <ArrowRight className={textMuted} size={14} />
-                          <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                            record.status === 'active' 
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" 
-                              : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
-                          }`}>
-                            {record.status}
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
+                </TabsContent>
+
+                <TabsContent value="timeline" className="mt-0">
+                  {filteredHistory.length === 0 ? (
+                    <div className="text-center py-10 border rounded-xl border-dashed dark:border-gray-800">
+                      <Clock className={`mx-auto mb-2 opacity-20 ${textMuted}`} size={48} />
+                      <p className={textMuted}>No past subscription records found matching filters.</p>
+                    </div>
+                  ) : (
+                    (() => {
+                      const sortedHistory = [...filteredHistory].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+                      const earliestDate = new Date(sortedHistory[0].start_date).getTime();
+                      const latestDate = Math.max(...sortedHistory.map(r => new Date(r.end_date).getTime()));
+                      const totalDuration = latestDate - earliestDate || 1; // prevent div by zero
+                      const paddedDuration = totalDuration * 1.2;
+                      const paddingOffset = totalDuration * 0.1;
+
+                      // Compute non-overlapping tracks
+                      const trackEnds: number[] = [];
+                      const recordTrackMap = new Map<string, number>();
+                      
+                      sortedHistory.forEach(record => {
+                        const startT = new Date(record.start_date).getTime();
+                        const endT = new Date(record.end_date).getTime();
+                        let trackIdx = trackEnds.findIndex(end => end <= startT);
+                        if (trackIdx === -1) {
+                          trackIdx = trackEnds.length;
+                          trackEnds.push(endT);
+                        } else {
+                          trackEnds[trackIdx] = endT;
+                        }
+                        recordTrackMap.set(record.id, trackIdx);
+                      });
+
+                      const numTracks = Math.max(1, trackEnds.length);
+                      const trackHeight = 24;
+                      const graphHeight = Math.max(80, numTracks * trackHeight + 40);
+
+                      return (
+                        <div className="relative w-full overflow-x-auto py-8 scrollbar-thin rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 px-4">
+                          <div className="min-w-[500px] relative flex items-center" style={{ height: `${graphHeight}px` }}>
+                            {/* Main timeline axis line (in the middle vertically) */}
+                            <div className={`absolute left-0 right-0 h-1 flex rounded-full top-1/2 -translate-y-1/2 ${dm ? "bg-gray-700" : "bg-gray-200"} opacity-50`} />
+                            
+                            {/* Grid bounds */}
+                            <div className="absolute left-0 bottom-0 text-[10px] uppercase font-bold text-gray-400">
+                               {new Date(earliestDate).toLocaleDateString()}
+                            </div>
+                            <div className="absolute right-0 bottom-0 text-[10px] uppercase font-bold text-gray-400">
+                               {new Date(latestDate).toLocaleDateString()}
+                            </div>
+
+                            {sortedHistory.map((record) => {
+                               const startT = new Date(record.start_date).getTime();
+                               const endT = new Date(record.end_date).getTime();
+                               const leftPercent = ((startT - earliestDate + paddingOffset) / paddedDuration) * 100;
+                               const widthPercent = ((endT - startT) / paddedDuration) * 100;
+                               const isActive = record.is_active !== undefined ? record.is_active : record.status === 'active';
+                               
+                               const planColors: Record<string, string> = {
+                                 "FREE": "bg-gray-400 hover:bg-gray-300",
+                                 "BASIC": "bg-blue-500 hover:bg-blue-400",
+                                 "ADVANCE": "bg-purple-500 hover:bg-purple-400",
+                                 "PRO": "bg-yellow-500 hover:bg-yellow-400"
+                               };
+                               
+                               // active gets plan color, inactive gets gray
+                               const barColor = isActive 
+                                 ? (planColors[record.plan_type] || "bg-indigo-500 hover:bg-indigo-400")
+                                 : "bg-gray-400 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 opacity-60 hover:opacity-100";
+                               
+                               const trackIdx = recordTrackMap.get(record.id) || 0;
+                               // Center tracks vertically
+                               const startY = (graphHeight - numTracks * trackHeight) / 2;
+                               const topPos = startY + trackIdx * trackHeight + (trackHeight - 6) / 2; // 6 is bar height
+
+                               return (
+                                 <div 
+                                   key={record.id} 
+                                   className={`absolute group h-1.5 rounded-full ${barColor} cursor-pointer transition-all shadow-sm z-10`}
+                                   style={{ left: `${leftPercent}%`, width: `${Math.max(widthPercent, 1)}%`, top: `${topPos}px` }}
+                                 >
+                                   {/* Tooltip on hover */}
+                                   <div className="absolute top-4 left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs p-3 rounded-lg shadow-xl bg-gray-900 border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 text-white pointer-events-none">
+                                     <p className="font-bold text-sm mb-1">{record.plan_type} Plan</p>
+                                     <div className="text-xs text-gray-300 flex flex-col gap-1">
+                                       <p><span className="text-gray-400">Status:</span> <span className={isActive ? "text-green-400 font-medium" : "text-gray-300"}>{isActive ? 'Active' : (record.status || 'Expired')}</span></p>
+                                       <p><span className="text-gray-400">Start:</span> {new Date(record.start_date).toLocaleDateString()}</p>
+                                       <p><span className="text-gray-400">End:</span> {new Date(record.end_date).toLocaleDateString()}</p>
+                                     </div>
+                                   </div>
+                                 </div>
+                               )
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         )}
@@ -370,6 +540,24 @@ export function SubscriptionManagement() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`text-sm flex items-center gap-1 ${textMuted}`}>
+              <Filter size={14} /> Filter:
+            </span>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className={`w-[140px] h-9 ${dm ? "bg-gray-800 border-gray-700 text-gray-100" : ""}`}>
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="client">Client</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center gap-2">
             <span className={`text-sm flex items-center gap-1 ${textMuted}`}>
               <Users size={14} /> Total Users: {users.length}

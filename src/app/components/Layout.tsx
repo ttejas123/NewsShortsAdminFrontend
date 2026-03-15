@@ -75,18 +75,16 @@ const navItems: NavItem[] = [
   {
     label: "User Management",
     icon: <Users size={18} />,
-    path: "/users",
+    children: [
+      { label: "Users", path: "/users", icon: <User size={16} /> },
+      { label: "Subscriptions", path: "/subscriptions", icon: <CreditCard size={16} /> },
+    ],
   },
   {
     label: "Ads Management",
     icon: <Megaphone size={18} />,
     path: "/ads",
-  },
-  {
-    label: "Subscriptions",
-    icon: <CreditCard size={18} />,
-    path: "/subscriptions",
-  },
+  }
 ];
 
 const notifIconMap = {
@@ -107,7 +105,7 @@ const notifColorMap = {
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [expandedItems, setExpandedItems] = useState<string[]>(["RSS Feeds", "Articles"]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
