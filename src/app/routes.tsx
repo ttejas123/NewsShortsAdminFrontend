@@ -20,6 +20,7 @@ import { UserManagement } from "./pages/UserManagement";
 import { AdsManagement } from "./pages/AdsManagement";
 import { SubscriptionManagement } from "./pages/SubscriptionManagement";
 import { OAuthCallback } from "./pages/OAuthCallback";
+import Recommendations from "./pages/Recommendations";
 
 export const router = createBrowserRouter([
   {
@@ -67,6 +68,7 @@ export const router = createBrowserRouter([
       { path: "ads", Component: AdsManagement },
       { path: "subscriptions", Component: SubscriptionManagement },
       { path: "subscriptions/:userId", Component: SubscriptionManagement },
+      { path: "recommendations", Component: Recommendations },
         ],
       },
     ],

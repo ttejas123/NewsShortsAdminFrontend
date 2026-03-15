@@ -81,6 +81,11 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: "Rec. Engine",
+    icon: <Settings size={18} />,
+    path: "/recommendations",
+  },
+  {
     label: "Ads Management",
     icon: <Megaphone size={18} />,
     path: "/ads",

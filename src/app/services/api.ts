@@ -24,6 +24,8 @@ import type {
   SubscriptionCheck,
   SubscriptionGrantRequest,
   SubscriptionRecord,
+  AdminConfig,
+  UpdateConfigPayload,
 } from "../types/api";
 
 const API_BASE_URL =
@@ -604,6 +606,30 @@ class APIClient {
 
   async getSubscriptionHistory(userId: string): Promise<SubscriptionRecord[]> {
     return this.request<SubscriptionRecord[]>(`/subscriptions/user/${userId}`);
+  }
+
+  // Recommendation Engine Configs
+  async getAdminConfigs(): Promise<AdminConfig[]> {
+    return this.request<AdminConfig[]>("/admin/configs");
+  }
+
+  async updateAdminConfig(data: UpdateConfigPayload): Promise<AdminConfig> {
+    return this.request<AdminConfig>("/admin/configs", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async refreshConfigCache(): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/admin/configs/refresh", {
+      method: "POST",
+    });
+  }
+
+  async recalculateScores(): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/feed/metrics/recalculate", {
+      method: "POST",
+    });
   }
 }
 

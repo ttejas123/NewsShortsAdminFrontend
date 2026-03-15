@@ -342,3 +342,16 @@ export interface AdminNotification {
   is_read: boolean;
   read_at: string | null;
 }
+
+export interface AdminConfig {
+  key: string;
+  value: string;
+  description: string;
+}
+
+export interface UpdateConfigPayload {
+  key: string;
+  value: string;
+  description: string;
+}
+
