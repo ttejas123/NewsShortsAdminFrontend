@@ -211,9 +211,7 @@ class APIClient {
   }
 
   async triggerFeedFetch(sourceId: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/rss-sources/${sourceId}/fetch`, {
-      method: "POST",
-    });
+    return this.request<{ message: string }>(`/rss-sources/fetch/${sourceId}`);
   }
 
   // Feeds (Articles)

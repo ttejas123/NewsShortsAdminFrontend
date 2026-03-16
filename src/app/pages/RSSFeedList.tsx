@@ -470,6 +470,13 @@ export function RSSFeedList() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1 relative">
                         <button
+                          onClick={() => triggerFetch(source.id)}
+                          className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-emerald-400 hover:bg-white/5" : "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"}`}
+                          title="Fetch Feeds"
+                        >
+                          <RefreshCw size={15} />
+                        </button>
+                        <button
                           onClick={() => navigate(`/rss/setup?id=${source.id}`)}
                           className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-indigo-400 hover:bg-white/5" : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"}`}
                           title="Edit"

@@ -241,7 +241,7 @@ const Recommendations: React.FC = () => {
           <div className="decay-card card glass">
             <h3>Time Decay Curve</h3>
             <div className="curve-container">
-              <svg viewBox="0 0 200 100" className="decay-graph">
+              <svg viewBox="0 0 200 120" className="decay-graph">
                 <path d="M 10 10 Q 100 10, 190 90" fill="none" stroke="var(--accent)" strokeWidth="3" />
                 <text x="10" y="105" fontSize="8" fill="#888">0h</text>
                 <text x="100" y="105" fontSize="8" fill="#888">24h</text>
