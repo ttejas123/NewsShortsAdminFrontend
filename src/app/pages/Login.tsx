@@ -29,7 +29,7 @@ export function Login() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:3000/api/auth/google";
+    window.location.href = "http://54.163.60.177/api/auth/google";
   };
 
   useEffect(() => {

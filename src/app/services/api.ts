@@ -29,7 +29,7 @@ import type {
 } from "../types/api";
 
 const API_BASE_URL =
-  (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  (import.meta as any).env.VITE_API_BASE_URL || "http://54.163.60.177/api";
 
 class APIClient {
   private readonly baseUrl: string;
@@ -93,7 +93,7 @@ class APIClient {
   async getDashboardSummary(): Promise<DashboardSummary> {
     return this.request<DashboardSummary>("/analytics/dashboard-summary");
   }
-  
+
   async getDashboardSummary24(): Promise<DashboardSummary> {
     return this.request<DashboardSummary>("/analytics/dashboard-summary-24h");
   }
@@ -630,6 +630,5 @@ class APIClient {
     });
   }
 }
-
 
 export const apiClient = new APIClient(API_BASE_URL);
