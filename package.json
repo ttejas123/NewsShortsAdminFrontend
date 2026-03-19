@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "deploy": "rsync -av --delete dist/ /var/www/frontend/"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
