@@ -20,7 +20,131 @@ export function RSSFeedSetup() {
     language_code: "en",
     fetch_interval_minutes: "30",
     is_active: true,
+    extractor_js: "",
   });
+
+  const EXTRACTOR_TEMPLATE = `(item) => {
+  const providerName = "${form.provider_name || "News Provider"}";
+
+  function extractAuthor(author) {
+    if (!author) return "Unknown Author";
+
+    return author
+      .replace(/إعداد:\\s*/g, "")
+      .replace(/وكالات/g, "Agencies")
+      .trim();
+  }
+
+  function extractCategory(categories, link) {
+    if (categories && categories.length > 0) {
+      // skip weird ad category like "/"
+      const cleanCategory = categories.find(c => !c.startsWith("/"));
+      return cleanCategory || categories[0];
+    }
+
+    try {
+      const parts = new URL(link).pathname.split("/");
+      return parts[2] || "World";
+    } catch {
+      return "World";
+    }
+  }
+
+  function extractSubCategory(categories) {
+    if (!categories || categories.length < 2) return "";
+
+    const valid = categories.filter(c => !c.startsWith("/"));
+    return valid[1] || "";
+  }
+
+  return {
+    id: item.guid || item.link,
+
+    title: item.title || "",
+    subtitle: extractSubCategory(item.categories),
+
+    description: item.contentSnippet || "",
+
+    slug: item.link?.split("/").pop() || "",
+
+    provider: {
+      id: "provider-id",
+      name: providerName,
+      type: "News",
+      subType: "News"
+    },
+
+    published_at: item.isoDate || item.pubDate,
+
+    is_featured: false,
+    engagement_score: 0,
+
+    html: item.content || item["content:encoded"] || "",
+
+    layout: "standardCard",
+
+    web_url: item.link,
+
+    author: {
+      id: 1,
+      name: extractAuthor(item["dc:creator"] || item.creator),
+      bio: "",
+      profile_picture: ""
+    },
+
+    source: {
+      id: 1,
+      name: providerName,
+      website: item.link
+    },
+
+    category: {
+      id: 1,
+      name: extractCategory(item.categories, item.link),
+      description: ""
+    },
+
+    tags: (item.categories || []).filter(c => !c.startsWith("/")),
+
+    language: {
+      id: 2,
+      name: "Arabic",
+      code: "ar"
+    },
+
+    region: {
+      id: 1,
+      name: "Middle East",
+      code: "me"
+    },
+
+    status: {
+      id: 1,
+      name: "PENDING",
+      description: "Awaiting AI enrichment"
+    },
+
+    resources:
+      item.enclosure?.url
+        ? [
+            {
+              id: 1,
+              name: "cover_image",
+              url: item.enclosure.url,
+              content_type: {
+                id: 1,
+                name: "story",
+                description: "Text-based story"
+              }
+            }
+          ]
+        : [],
+
+    sentiment: null,
+
+    entities: []
+  };
+}`;
 
   // Dark mode helpers
   const dm = darkMode;
@@ -48,6 +172,7 @@ export function RSSFeedSetup() {
         language_code: source.language_code || "en",
         fetch_interval_minutes: String(source.fetch_interval_minutes || 30),
         is_active: source.is_active,
+        extractor_js: source.extractor_js || "",
       });
     } catch (err: any) {
       console.error("Failed to load source:", err);
@@ -77,6 +202,7 @@ export function RSSFeedSetup() {
         language_code: form.language_code,
         is_active: form.is_active,
         fetch_interval_minutes: Number.parseInt(form.fetch_interval_minutes, 10),
+        extractor_js: form.extractor_js.trim() || undefined,
       };
 
       if (editId) {
@@ -243,6 +369,38 @@ export function RSSFeedSetup() {
                   Active (Enable automatic fetching)
                 </span>
               </label>
+            </div>
+
+            <hr className={`my-6 ${dm ? "border-gray-800" : "border-gray-100"}`} />
+
+            {/* Extractor JS */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className={labelClass}>
+                  JavaScript Extractor (extractor_js):
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Reset to default template? This will overwrite your changes.")) {
+                      setForm({ ...form, extractor_js: EXTRACTOR_TEMPLATE });
+                    }
+                  }}
+                  className="text-xs text-indigo-500 hover:text-indigo-400 font-medium"
+                >
+                  Use Template
+                </button>
+              </div>
+              <p className={`text-xs ${textMuted}`}>
+                Define a function that takes an <code>item</code> (from the RSS parser) and returns a <code>Feed</code> object.
+              </p>
+              <textarea
+                value={form.extractor_js}
+                onChange={(e) => setForm({ ...form, extractor_js: e.target.value })}
+                placeholder={EXTRACTOR_TEMPLATE}
+                className={`${inputBg} w-full min-h-[400px] p-4 font-mono text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all resize-y`}
+                spellCheck={false}
+              />
             </div>
           </div>
 
