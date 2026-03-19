@@ -553,6 +553,12 @@ export function RSSFeedList() {
                   Feeds
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Fetched (24h)
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Saved (24h)
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Last Fetched
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -566,14 +572,14 @@ export function RSSFeedList() {
             <tbody className={`divide-y ${dm ? "divide-gray-800" : "divide-gray-100"}`}>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center">
+                  <td colSpan={11} className="px-4 py-12 text-center">
                     <Loader2 size={24} className="animate-spin text-indigo-600 mx-auto" />
                     <p className={`text-sm mt-2 ${textMuted}`}>Loading sources...</p>
                   </td>
                 </tr>
               ) : filteredSources.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className={`px-4 py-12 text-center text-sm ${textMuted}`}>
+                  <td colSpan={11} className={`px-4 py-12 text-center text-sm ${textMuted}`}>
                     {selectedTags.length > 0 || search
                       ? "No sources found matching your filters"
                       : "No RSS sources yet. Add one to get started!"}
@@ -609,6 +615,12 @@ export function RSSFeedList() {
                     <td className={`px-4 py-3 ${textBody}`}>N/A</td>
                     <td className={`px-4 py-3 ${textBody}`}>N/A</td>
                     <td className={`px-4 py-3 ${textBody}`}>-</td>
+                    <td className={`px-4 py-3 ${textBody}`}>
+                      {source.feeds_fetched_24h || 0}
+                    </td>
+                    <td className={`px-4 py-3 ${textBody}`}>
+                      {source.feeds_saved_24h || 0}
+                    </td>
                     <td className={`px-4 py-3 ${textMuted}`}>
                       {formatDate(source.last_fetched_at)}
                     </td>

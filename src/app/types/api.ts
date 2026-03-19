@@ -138,6 +138,8 @@ export interface RSSSource {
   fetch_interval_minutes?: number;
   extractor_js?: string;
   last_fetched_at?: string;
+  feeds_fetched_24h?: string | number;
+  feeds_saved_24h?: string | number;
   createdAt: string;
   updatedAt: string;
 }
