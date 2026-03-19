@@ -214,6 +214,10 @@ class APIClient {
     return this.request<{ message: string }>(`/rss-sources/fetch/${sourceId}`);
   }
 
+  async testRSSSource(id: string): Promise<{ parsed_result: any; extractor_js_result: any }> {
+    return this.request<{ parsed_result: any; extractor_js_result: any }>(`/rss-sources/test/${id}`);
+  }
+
   // Feeds (Articles)
   async getFeeds(params?: {
     limit?: number;

@@ -16,11 +16,149 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  Eye,
+  FileCode,
+  Beaker,
+  X,
+  ChevronRight,
+  ChevronDown,
+  Copy,
 } from "lucide-react";
 import { apiClient } from "../services/api";
 import type { RSSSource, DashboardSummary } from "../types/api";
 import { useDebounce } from "../hook/useDebounce";
 import { useTheme } from "../context/ThemeContext";
+
+// --- Enhanced JSON Viewer Components ---
+
+interface JsonNodeProps {
+  data: any;
+  name?: string | number;
+  isLast?: boolean;
+  depth?: number;
+  initialExpanded?: boolean;
+}
+
+function JsonNode({ data, name, isLast = true, depth = 0, initialExpanded = false }: JsonNodeProps) {
+  const [expanded, setExpanded] = useState(depth < 2 || initialExpanded);
+  const { darkMode } = useTheme();
+  const dm = darkMode;
+
+  const isObject = data !== null && typeof data === "object";
+  const isArray = Array.isArray(data);
+  const isEmpty = isObject && (isArray ? data.length === 0 : Object.keys(data).length === 0);
+
+  const getTypeColor = (val: any) => {
+    if (typeof val === "string") return dm ? "text-emerald-400" : "text-emerald-600";
+    if (typeof val === "number") return dm ? "text-blue-400" : "text-blue-600";
+    if (typeof val === "boolean") return dm ? "text-purple-400" : "text-purple-600";
+    if (val === null) return dm ? "text-gray-500" : "text-gray-400";
+    return dm ? "text-gray-300" : "text-gray-700";
+  };
+
+  const renderValue = (val: any) => {
+    if (typeof val === "string") return `"${val}"`;
+    if (val === null) return "null";
+    return String(val);
+  };
+
+  if (!isObject) {
+    return (
+      <div className="flex items-start gap-1 py-0.5 ml-4">
+        {name !== undefined && (
+          <span className={dm ? "text-indigo-400" : "text-indigo-600"}>"{name}": </span>
+        )}
+        <span className={`${getTypeColor(data)} break-all`}>{renderValue(data)}</span>
+        {!isLast && <span className={dm ? "text-gray-600" : "text-gray-400"}>,</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-0.5">
+      <div 
+        className={`flex items-center gap-1 cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 transition-colors`}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className={dm ? "text-gray-500" : "text-gray-400"}>
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </span>
+        {name !== undefined && (
+          <span className={dm ? "text-indigo-400" : "text-indigo-600"}>"{name}": </span>
+        )}
+        <span className={dm ? "text-gray-400" : "text-gray-500"}>
+          {isArray ? `Array(${data.length}) [` : "{"}
+          {!expanded && !isEmpty && " ... "}
+          {(!expanded || isEmpty) && (isArray ? "]" : "}")}
+          {!expanded && !isLast && <span className={dm ? "text-gray-600" : "text-gray-400"}>,</span>}
+        </span>
+      </div>
+
+      {expanded && !isEmpty && (
+        <div className="ml-4 border-l border-gray-800/50 pl-2 mt-0.5">
+          {isArray
+            ? data.map((item, i) => (
+                <JsonNode
+                  key={i}
+                  data={item}
+                  isLast={i === data.length - 1}
+                  depth={depth + 1}
+                />
+              ))
+            : Object.entries(data).map(([key, value], i, arr) => (
+                <JsonNode
+                  key={key}
+                  name={key}
+                  data={value}
+                  isLast={i === arr.length - 1}
+                  depth={depth + 1}
+                />
+              ))}
+        </div>
+      )}
+
+      {expanded && !isEmpty && (
+        <div className={`ml-4 ${dm ? "text-gray-400" : "text-gray-500"}`}>
+          {isArray ? "]" : "}"}
+          {!isLast && <span className={dm ? "text-gray-600" : "text-gray-400"}>,</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JsonViewer({ data, title }: { data: any; title: string }) {
+  const { darkMode } = useTheme();
+  const dm = darkMode;
+  
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    alert("Copied to clipboard!");
+  };
+
+  return (
+    <div className="flex flex-col h-full min-h-[500px]">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center gap-2">
+          {title.includes("Parsed") ? <FileCode size={16} className="text-blue-500" /> : <CheckCircle size={16} className="text-emerald-500" />}
+          <span className={`text-sm font-medium ${dm ? "text-gray-100" : "text-gray-900"}`}>{title}</span>
+        </div>
+        <button 
+          onClick={copyToClipboard}
+          className={`p-1 rounded hover:bg-white/10 transition-colors ${dm ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"}`}
+          title="Copy JSON"
+        >
+          <Copy size={14} />
+        </button>
+      </div>
+      <div className={`flex-1 rounded-xl border overflow-hidden flex flex-col ${dm ? "bg-gray-950 border-gray-800" : "bg-gray-50 border-gray-200"}`}>
+        <div className="flex-1 overflow-auto p-4 font-mono text-xs custom-scrollbar">
+          <JsonNode data={data} initialExpanded={true} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function RSSFeedList() {
   const navigate = useNavigate();
@@ -38,6 +176,9 @@ export function RSSFeedList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [testId, setTestId] = useState<string | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ parsed_result: any; extractor_js_result: any } | null>(null);
   const limit = 10;
   const debouncedSearchTerm = useDebounce(search, 500);
 
@@ -163,6 +304,21 @@ export function RSSFeedList() {
       setOpenMenu(null);
     } catch (err: any) {
       alert(err.message || "Failed to trigger feed fetch");
+    }
+  };
+
+  const handleTest = async (id: string) => {
+    try {
+      setTestId(id);
+      setTestLoading(true);
+      setTestResult(null);
+      const data = await apiClient.testRSSSource(id);
+      setTestResult(data);
+    } catch (err: any) {
+      alert(err.message || "Failed to test RSS source");
+      setTestId(null);
+    } finally {
+      setTestLoading(false);
     }
   };
 
@@ -477,6 +633,13 @@ export function RSSFeedList() {
                           <RefreshCw size={15} />
                         </button>
                         <button
+                          onClick={() => handleTest(source.id)}
+                          className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-amber-400 hover:bg-white/5" : "text-gray-400 hover:text-amber-600 hover:bg-amber-50"}`}
+                          title="Test Extractor"
+                        >
+                          <Beaker size={15} />
+                        </button>
+                        <button
                           onClick={() => navigate(`/rss/setup?id=${source.id}`)}
                           className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-indigo-400 hover:bg-white/5" : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"}`}
                           title="Edit"
@@ -498,6 +661,12 @@ export function RSSFeedList() {
                               className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
                             >
                               <RefreshCw size={14} /> Trigger Fetch
+                            </button>
+                            <button
+                              onClick={() => handleTest(source.id)}
+                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
+                            >
+                              <Beaker size={14} /> Test Extractor
                             </button>
                             <button
                               onClick={() => toggleStatus(source.id, source.is_active)}
@@ -587,6 +756,59 @@ export function RSSFeedList() {
           </div>
         </div>
       </div>
+
+      {/* Test Result Modal */}
+      {testId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl flex flex-col ${cardBg}`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${borderCol}`}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
+                  <Beaker size={20} />
+                </div>
+                <div>
+                  <h3 className={`text-lg font-semibold ${textTitle}`}>Extractor Test Results</h3>
+                  <p className={`text-xs ${textMuted}`}>Source ID: {testId}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setTestId(null)}
+                className={`p-2 rounded-full transition-colors ${dm ? "hover:bg-gray-800 text-gray-400" : "hover:bg-gray-100 text-gray-500"}`}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {testLoading ? (
+                <div className="py-24 text-center">
+                  <Loader2 size={40} className="animate-spin text-indigo-600 mx-auto" />
+                  <p className={`mt-4 text-sm ${textMuted}`}>Parsing RSS and applying extractor...</p>
+                </div>
+              ) : testResult ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                  <JsonViewer data={testResult.parsed_result} title="Parsed RSS Data (First Item)" />
+                  <JsonViewer data={testResult.extractor_js_result} title="Extractor JS Result" />
+                </div>
+              ) : (
+                <div className="py-24 text-center">
+                  <AlertCircle size={40} className="text-red-500 mx-auto" />
+                  <p className={`mt-4 text-sm ${textMuted}`}>Failed to get test results.</p>
+                </div>
+              )}
+            </div>
+
+            <div className={`px-6 py-4 border-t flex justify-end ${borderCol}`}>
+              <button
+                onClick={() => setTestId(null)}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors text-sm font-medium"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
