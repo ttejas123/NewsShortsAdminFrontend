@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { useNavigate } from "react-router";
 import {
   Plus,
@@ -179,7 +179,8 @@ export function RSSFeedList() {
   const [testId, setTestId] = useState<string | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ parsed_result: any; extractor_js_result: any } | null>(null);
-  const limit = 10;
+  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(new Set());
+  const limit = 1000;
   const debouncedSearchTerm = useDebounce(search, 500);
 
   // Dark mode helpers
@@ -218,14 +219,29 @@ export function RSSFeedList() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.getRSSSources({
-        page,
-        limit,
-        search: debouncedSearchTerm || undefined,
-      });
-      setSources(response.items);
-      setTotal(response.pagination.total);
-      setTotalPages(response.pagination.totalPages);
+      
+      let allItems: RSSSource[] = [];
+      let currentPage = 1;
+      let totalPgs = 1;
+      let grandTotal = 0;
+
+      // Fetch all pages to display on a single page
+      do {
+        const response = await apiClient.getRSSSources({
+          page: currentPage,
+          limit: 100, // Fetch in batches of 100
+          search: debouncedSearchTerm || undefined,
+        });
+        
+        allItems = [...allItems, ...response.items];
+        totalPgs = response.pagination.totalPages;
+        grandTotal = response.pagination.total;
+        currentPage++;
+      } while (currentPage <= totalPgs);
+
+      setSources(allItems);
+      setTotal(grandTotal);
+      setTotalPages(1);
       
       // Extract unique tags from all sources - Not available in API
       setAvailableTags([]);
@@ -251,6 +267,63 @@ export function RSSFeedList() {
         selectedTags.every((tag) => false) // Tags not available in API
       )
     : sources;
+
+  const { groupedSources, grandTotalFetched, grandTotalSaved } = useMemo(() => {
+    const groups: Record<string, {
+      provider_name: string;
+      sources: RSSSource[];
+      total_feeds_fetched_24h: number;
+      total_feeds_saved_24h: number;
+      last_fetched_at: string | undefined;
+    }> = {};
+
+    let grandTotalFetched = 0;
+    let grandTotalSaved = 0;
+
+    filteredSources.forEach((source) => {
+      const provider = source.provider_name ? source.provider_name.trim() : 'Unknown Provider';
+      if (!groups[provider]) {
+        groups[provider] = {
+          provider_name: provider,
+          sources: [],
+          total_feeds_fetched_24h: 0,
+          total_feeds_saved_24h: 0,
+          last_fetched_at: source.last_fetched_at,
+        };
+      }
+      
+      const fetched = Number(source.feeds_fetched_24h) || 0;
+      const saved = Number(source.feeds_saved_24h) || 0;
+
+      groups[provider].sources.push(source);
+      groups[provider].total_feeds_fetched_24h += fetched;
+      groups[provider].total_feeds_saved_24h += saved;
+
+      grandTotalFetched += fetched;
+      grandTotalSaved += saved;
+
+      if (source.last_fetched_at) {
+        if (!groups[provider].last_fetched_at || new Date(source.last_fetched_at) > new Date(groups[provider].last_fetched_at!)) {
+          groups[provider].last_fetched_at = source.last_fetched_at;
+        }
+      }
+    });
+
+    return {
+      groupedSources: Object.values(groups).sort((a, b) => a.provider_name.localeCompare(b.provider_name)),
+      grandTotalFetched,
+      grandTotalSaved
+    };
+  }, [filteredSources]);
+
+  const toggleProvider = (providerName: string) => {
+    setExpandedProviders((prev) => {
+      const next = new Set(prev);
+      if (next.has(providerName)) next.delete(providerName);
+      else next.add(providerName);
+      return next;
+    });
+  };
 
   const toggleAll = () => {
     if (selected.size === filteredSources.length) {
@@ -577,7 +650,7 @@ export function RSSFeedList() {
                     <p className={`text-sm mt-2 ${textMuted}`}>Loading sources...</p>
                   </td>
                 </tr>
-              ) : filteredSources.length === 0 ? (
+              ) : groupedSources.length === 0 ? (
                 <tr>
                   <td colSpan={11} className={`px-4 py-12 text-center text-sm ${textMuted}`}>
                     {selectedTags.length > 0 || search
@@ -586,186 +659,202 @@ export function RSSFeedList() {
                   </td>
                 </tr>
               ) : (
-                filteredSources.map((source) => (
-                  <tr
-                    key={source.id}
-                    className={`transition-colors ${
-                      selected.has(source.id)
-                        ? dm ? "bg-indigo-900/20" : "bg-indigo-50"
-                        : hoverBg
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(source.id)}
-                        onChange={() => toggleSelect(source.id)}
-                        className="accent-indigo-600 rounded"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className={`font-medium ${textTitle}`}>{source.provider_name}</div>
-                      <div className={`text-xs truncate max-w-64 ${textMuted}`}>
-                        {source.rss_url}
-                      </div>
-                    </td>
-                    <td className={`px-4 py-3 ${textBody}`}>
-                      {source.language_code || "N/A"}
-                    </td>
-                    <td className={`px-4 py-3 ${textBody}`}>N/A</td>
-                    <td className={`px-4 py-3 ${textBody}`}>N/A</td>
-                    <td className={`px-4 py-3 ${textBody}`}>-</td>
-                    <td className={`px-4 py-3 ${textBody}`}>
-                      {source.feeds_fetched_24h || 0}
-                    </td>
-                    <td className={`px-4 py-3 ${textBody}`}>
-                      {source.feeds_saved_24h || 0}
-                    </td>
-                    <td className={`px-4 py-3 ${textMuted}`}>
-                      {formatDate(source.last_fetched_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          source.is_active
-                            ? dm ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-emerald-100 text-emerald-700"
-                            : dm ? "bg-gray-800 text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {source.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1 relative">
-                        <button
-                          onClick={() => triggerFetch(source.id)}
-                          className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-emerald-400 hover:bg-white/5" : "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"}`}
-                          title="Fetch Feeds"
-                        >
-                          <RefreshCw size={15} />
-                        </button>
-                        <button
-                          onClick={() => handleTest(source.id)}
-                          className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-amber-400 hover:bg-white/5" : "text-gray-400 hover:text-amber-600 hover:bg-amber-50"}`}
-                          title="Test Extractor"
-                        >
-                          <Beaker size={15} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/rss/setup?id=${source.id}`)}
-                          className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-indigo-400 hover:bg-white/5" : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"}`}
-                          title="Edit"
-                        >
-                          <Edit3 size={15} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setOpenMenu(openMenu === source.id ? null : source.id)
-                          }
-                          className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-gray-200 hover:bg-white/5" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
-                        >
-                          <MoreVertical size={15} />
-                        </button>
-                        {openMenu === source.id && (
-                          <div className={`absolute right-0 top-8 w-48 rounded-lg shadow-lg border py-1 z-20 ${dm ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
-                            <button
-                              onClick={() => triggerFetch(source.id)}
-                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
-                            >
-                              <RefreshCw size={14} /> Trigger Fetch
-                            </button>
-                            <button
-                              onClick={() => handleTest(source.id)}
-                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
-                            >
-                              <Beaker size={14} /> Test Extractor
-                            </button>
-                            <button
-                              onClick={() => toggleStatus(source.id, source.is_active)}
-                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
-                            >
-                              {source.is_active ? (
-                                <>
-                                  <Pause size={14} /> Pause Source
-                                </>
-                              ) : (
-                                <>
-                                  <Play size={14} /> Activate Source
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => deleteFeed(source.id)}
-                              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-red-400 hover:bg-red-500/10" : "text-red-600 hover:bg-red-50"}`}
-                            >
-                              <Trash2 size={14} /> Delete Source
-                            </button>
-                          </div>
+                groupedSources.map((group) => (
+                  <Fragment key={group.provider_name}>
+                    {/* Header Row for Provider */}
+                    <tr
+                      className={`transition-colors border-b ${dm ? "bg-gray-800/40 border-gray-700/50 hover:bg-gray-800/60" : "bg-gray-50 border-gray-200 hover:bg-gray-100"} cursor-pointer`}
+                      onClick={() => toggleProvider(group.provider_name)}
+                    >
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        {/* Empty checkbox space for the group row */}
+                      </td>
+                      <td className="px-4 py-3" colSpan={5}>
+                        <div className="flex items-center gap-2">
+                          <button className={`p-1 rounded transition-colors ${dm ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-200 text-gray-600"}`}>
+                            {expandedProviders.has(group.provider_name) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </button>
+                          <span className={`font-semibold ${textTitle}`}>{group.provider_name}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${dm ? "bg-indigo-500/20 text-indigo-300" : "bg-indigo-100 text-indigo-700"}`}>
+                            {group.sources.length} {group.sources.length === 1 ? 'source' : 'sources'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className={`px-4 py-3 font-semibold ${textTitle}`}>
+                        {group.total_feeds_fetched_24h}
+                        {grandTotalFetched > 0 && (
+                          <span className={`ml-1 text-xs font-normal ${textMuted}`}>
+                            ({((group.total_feeds_fetched_24h / grandTotalFetched) * 100).toFixed(1)}%)
+                          </span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className={`px-4 py-3 font-semibold ${textTitle}`}>
+                        {group.total_feeds_saved_24h}
+                        {grandTotalSaved > 0 && (
+                          <span className={`ml-1 text-xs font-normal ${textMuted}`}>
+                            ({((group.total_feeds_saved_24h / grandTotalSaved) * 100).toFixed(1)}%)
+                          </span>
+                        )}
+                      </td>
+                      <td className={`px-4 py-3 ${textMuted}`}>
+                        {formatDate(group.last_fetched_at)}
+                      </td>
+                      <td className="px-4 py-3" colSpan={2}></td>
+                    </tr>
+                    
+                    {/* Expanded Source Rows */}
+                    {expandedProviders.has(group.provider_name) &&
+                      group.sources.map((source) => (
+                        <tr
+                          key={source.id}
+                          className={`transition-colors border-b last:border-0 ${
+                            selected.has(source.id)
+                              ? dm ? "bg-indigo-900/20 border-indigo-900/40" : "bg-indigo-50 border-indigo-100"
+                              : dm ? "bg-gray-900/40 border-gray-800/50 hover:bg-gray-800/40" : "bg-white border-gray-100 hover:bg-gray-50/50"
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selected.has(source.id)}
+                              onChange={() => toggleSelect(source.id)}
+                              className="accent-indigo-600 rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-3 pl-8">
+                            <div className={`font-medium text-sm ${textTitle}`}>
+                              {source.provider_name}
+                            </div>
+                            <div className={`text-xs truncate max-w-64 ${textMuted}`}>
+                              {source.rss_url}
+                            </div>
+                          </td>
+                          <td className={`px-4 py-3 ${textBody}`}>
+                            {source.language_code || "N/A"}
+                          </td>
+                          <td className={`px-4 py-3 ${textBody}`}>N/A</td>
+                          <td className={`px-4 py-3 ${textBody}`}>N/A</td>
+                          <td className={`px-4 py-3 ${textBody}`}>-</td>
+                          <td className={`px-4 py-3 ${textBody}`}>
+                            {source.feeds_fetched_24h || 0}
+                          </td>
+                          <td className={`px-4 py-3 ${textBody}`}>
+                            {source.feeds_saved_24h || 0}
+                          </td>
+                          <td className={`px-4 py-3 ${textMuted}`}>
+                            {formatDate(source.last_fetched_at)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                source.is_active
+                                  ? dm ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-emerald-100 text-emerald-700"
+                                  : dm ? "bg-gray-800 text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {source.is_active ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1 relative">
+                              <button
+                                onClick={() => triggerFetch(source.id)}
+                                className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-emerald-400 hover:bg-white/5" : "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"}`}
+                                title="Fetch Feeds"
+                              >
+                                <RefreshCw size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleTest(source.id)}
+                                className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-amber-400 hover:bg-white/5" : "text-gray-400 hover:text-amber-600 hover:bg-amber-50"}`}
+                                title="Test Extractor"
+                              >
+                                <Beaker size={15} />
+                              </button>
+                              <button
+                                onClick={() => navigate(`/rss/setup?id=${source.id}`)}
+                                className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-indigo-400 hover:bg-white/5" : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"}`}
+                                title="Edit"
+                              >
+                                <Edit3 size={15} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setOpenMenu(openMenu === source.id ? null : source.id)
+                                }
+                                className={`p-1.5 rounded-md transition-colors ${dm ? "text-gray-400 hover:text-gray-200 hover:bg-white/5" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
+                              >
+                                <MoreVertical size={15} />
+                              </button>
+                              {openMenu === source.id && (
+                                <div className={`absolute right-0 top-8 w-48 rounded-lg shadow-lg border py-1 z-20 ${dm ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+                                  <button
+                                    onClick={() => triggerFetch(source.id)}
+                                    className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
+                                  >
+                                    <RefreshCw size={14} /> Trigger Fetch
+                                  </button>
+                                  <button
+                                    onClick={() => handleTest(source.id)}
+                                    className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
+                                  >
+                                    <Beaker size={14} /> Test Extractor
+                                  </button>
+                                  <button
+                                    onClick={() => toggleStatus(source.id, source.is_active)}
+                                    className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"}`}
+                                  >
+                                    {source.is_active ? (
+                                      <>
+                                        <Pause size={14} /> Pause Source
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play size={14} /> Activate Source
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => deleteFeed(source.id)}
+                                    className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${dm ? "text-red-400 hover:bg-red-500/10" : "text-red-600 hover:bg-red-50"}`}
+                                  >
+                                    <Trash2 size={14} /> Delete Source
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </Fragment>
                 ))
+              )}
+              
+              {/* Grand Total Row */}
+              {groupedSources.length > 0 && (
+                <tr className={`border-t-2 ${dm ? "border-gray-700 bg-gray-800/80 text-gray-100" : "border-gray-200 bg-gray-100/80 text-gray-900"}`}>
+                  <td className="px-4 py-4 text-right font-bold uppercase tracking-wider text-xs" colSpan={6}>
+                    Grand Total
+                  </td>
+                  <td className="px-4 py-4 font-bold">
+                    {grandTotalFetched}
+                  </td>
+                  <td className="px-4 py-4 font-bold">
+                    {grandTotalSaved}
+                  </td>
+                  <td className="px-4 py-4" colSpan={3}></td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Footer info (Pagination removed since all items are shown) */}
         <div className={`px-5 py-3 border-t flex items-center justify-between text-xs ${borderCol} ${textMuted}`}>
           <span>
-            Showing {filteredSources.length === 0 ? 0 : (page - 1) * limit + 1} to{" "}
-            {Math.min(page * limit, total)} of {total} sources
+            Showing {filteredSources.length === 0 ? 0 : 1} to {filteredSources.length} of {total} sources
             {selectedTags.length > 0 && ` (filtered by ${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''})`}
           </span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1 || loading}
-              className={`px-3 py-1.5 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                dm ? "border-gray-700 hover:bg-gray-800" : "border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              Prev
-            </button>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (page <= 3) {
-                pageNum = i + 1;
-              } else if (page >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = page - 2 + i;
-              }
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  disabled={loading}
-                  className={`px-3 py-1.5 rounded border transition-colors ${
-                    page === pageNum
-                      ? "border-indigo-600 bg-indigo-600 text-white"
-                      : dm
-                      ? "border-gray-700 hover:bg-gray-800"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages || loading}
-              className={`px-3 py-1.5 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                dm ? "border-gray-700 hover:bg-gray-800" : "border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              Next
-            </button>
-          </div>
         </div>
       </div>
 
